@@ -4,14 +4,18 @@ import numpy as np
 import requests
 import json
 
-st.set_page_config(page_title="英语学习机", layout="centered", page_icon="🙌")  
+st.set_page_config(page_title="英语学习机", layout="centered", page_icon="🤖")  
   
 API_KEY = "ZB7qXhepNoq0B9HCGGvr6v8Z"  
 SECRET_KEY = "p52DihWmG17m9jf1xjNw7n0gbjTzwBGa" 
 
 def p1():
 
-    st.write("欢迎来到英语学习专区 👋作者:中国  杨岱铭")
+    st.write("欢迎来到英语学习专区 👋作者:中国  杨岱铭   你好吗(｡･∀･)ﾉﾞ嗨")
+    #video_file = open("https://pixabay.com/en/videos/star-long-exposure-starry-sky-sky-6962/", 'rb')
+    #video_bytes = video_file.read()
+    st.video("https://www.bilibili.com/video/BV1Gc411v7g1/?spm_id_from=333.1073.high_energy.content.click")
+    
 
     st.sidebar.success("选择一个选项")
     st.sidebar.success("教程")
@@ -24,6 +28,8 @@ def p1():
                 
                 娱乐2:https://www.bilibili.com/
                 
+                视频:https://www.bilibili.com/video/BV1DB421673S/?spm_id_from=333.1007.tianma.1-2-2.click
+                
                 windows下载:https://www.microsoft.com/zh-cn/software-download/
                 
                 微软官网:https://www.microsoft.com/zh-cn/
@@ -31,8 +37,8 @@ def p1():
                 msdn:https://msdn.itellyou.cn/
                 
                 专为英语而生\n
-                版本1.5v\n
-                请选择:\n
+                版本1.0v\n
+                它可以:\n
                     1.翻译(单词,词组和文章)
                     2.生成一篇英语文章(3-6年级)
                     3.我写英文你写中文
@@ -42,6 +48,8 @@ def p1():
                 
                 """
     )
+    
+    st.image('AAA.png', caption='windows11出品,必是精品')
 
 
 
@@ -77,11 +85,18 @@ def p2():
         return str(requests.post(url, params=params).json().get("access_token"))
 
     if __name__== '__main__':
-        st.title("😲杨岱铭🐔的英语学习教练💕💕杨岱铭出品,必是精品☺️☺️☺️👍")
+        st.title("😲杨岱铭🐔英语学习教练💕💕💕杨岱铭出品,必是精品☺️☺️☺️☺️")
+        st.markdown("制作不易,不喜勿喷🤗🤗🤗")
         user_input = st.chat_input("请输入答案")
         with st.sidebar:
             if st.sidebar.button('清空聊天历史'):
                 st.session_state['chat_history']=[]
+            
+            if st.sidebar.button('新年祝福🤖'):
+                    user_input="""
+                        请写一个新年祝福,
+                        Thank you!
+                    """
             
             if st.sidebar.button('开始学习English吧🦾'):
                     user_input="""
@@ -169,12 +184,16 @@ def p2():
             if st.sidebar.button('自我介绍🤖'):
                     user_input="""
                         你是一个专业的6年级英语老师,
+                        你是百度老师,
                         请自我介绍,
-                        你来自哪里,
+                        用英文,
+                        你来自万载,
                         Thank you!
                     """
+            st.markdown("制作不易,不喜勿喷🤗🤗🤗")
     
     
+
     
     if user_input is not None:
         progress_bar = st.empty()
@@ -197,13 +216,42 @@ def p2():
             else:
                 st.info('不能回答,斯密达😂')
 
+def p3():
+    st.title("智能英语学习机")
+    st.markdown("""
+                该网页为了孩子的英语而生,\n
+                可以让老师更方便地备课,\n
+                让学生跟方便地学习英语。
+                如果有宝贵建议请发微软邮箱,就是Outlook.com(qqq123456131949)并留下您的大名,谢谢\n
+                在此网站内,请注意您的语言文明,谢谢。\n
+                制作不易,不喜勿喷🤗🤗🤗
+                """)
+    st.image('UUU.png', caption='杨岱铭出品,必是精品')
 
+def p4():
+    st.title("智能英语学习机教程")
+    st.markdown("""
+                1.点击"杨岱铭的主页"(视频有Bug)。\n
+                2.选择选项:\n
+                    ①学习专区(语文、数学、英语都可以,按钮以英语为主):\n
+                        ①点击按钮即可快捷回答。\n
+                        ②可以在输入框内提问(敏感性息除外)。\n
+                    ②网页简介:\n
+                        ①可以了解这个网页。\n
+                3.主页的几个链接可以点,休闲娱乐,办公下载用。\n
+                制作不易,不喜勿喷🤗🤗🤗
+                """)
+    
         
     
 pagef = {
-    "杨岱铭的主页" : p2,
-    "学习专区(语文、数学、英语都可以,按钮以英语为主)" : p1
+    "杨岱铭的主页" : p1,
+    "学习专区(语文、数学、英语都可以,按钮以英语为主)" : p2,
+    "网页简介" : p3,
+    "教程" : p4
     }
     
 s = st.sidebar.selectbox("选择页面",pagef.keys())
 pagef[s]()
+
+
