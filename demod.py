@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import pycharts
 from pyecharts import options as opts
 from pyecharts.charts import Pie
 from pyecharts.faker import Faker
