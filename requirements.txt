@@ -1,2 +1,3 @@
 pyecharts>=2.0.4
 streamlit-echarts>=0.4.0
+jieba>=0.42.1
