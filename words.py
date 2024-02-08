@@ -34,7 +34,7 @@ def p1():
 def p2():
     uploaded_file = st.file_uploader("Choose a file")
     if uploaded_file is not None:
-        stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
+        txt = StringIO(uploaded_file.getvalue().decode("utf-8"))
         # st.write(stringio)
 
     txt = st.text_area(
