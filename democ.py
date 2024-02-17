@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np                                   
 import requests 
 import json  
+import matplotlib.pyplot as plt
  
 st.set_page_config(page_title="智能简单方程学习机", layout="centered", page_icon="👋")  
 API_KEY = "ZB7qXhepNoq0B9HCGGvr6v8Z"  
@@ -112,10 +113,38 @@ def p2():
                     assistant_info.write(assistant_content)
             else:
                 st.info("🤔对不起,我无法回答这个问题!请换一个问题.")
-            
+
+def p3():
+    def L1(a,b,c,d):
+        # 创建x的值范围
+        x1 = np.linspace(-10, 10, 400)
+        y1 = a * x1 + b
+        
+        x2 = np.linspace(-10, 10, 400)
+        y2 = c * x2 + d
+        
+        fig, ax = plt.subplots()
+        ax.plot(x1, y1, label=f'y = {a} * x + {b}')
+        ax.plot(x2, y2, label=f'y = {c} * x + {d}')
+        
+        plt.xlabel('X')
+        plt.ylabel('Y')
+        ax.legend()
+        st.pyplot(fig)
+        
+        
+    st.title('二元一次方程组画图')
+    st.subheader('输入格式 y = ax + b')
+    a = st.number_input('a',min_value = 0)
+    b = st.number_input('b',min_value = 0)
+    c = st.number_input('c',min_value = 0)
+    d = st.number_input('d',min_value = 0)
+    L1(a,b,c,d)
+
 pagef={
        "陈文柯的主页":p1,
-       "陈文柯的帮助":p2
+       "陈文柯的帮助":p2,
+       "二元一次方程组画图":p3
        }
 s=st.sidebar.selectbox("选择页面",pagef.keys())
 pagef[s]()
