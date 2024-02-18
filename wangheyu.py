@@ -1,18 +1,19 @@
 import streamlit as st
 import requests  
 import json
+import jieba
 
 st.set_page_config(page_title="语文学习机", layout="centered", page_icon="☘")  
   
-API_KEY = "ZB7qXhepNoq0B9HCGGvr6v8Z"  
-SECRET_KEY = "p52DihWmG17m9jf1xjNw7n0gbjTzwBGa" 
+API_KEY = "dzAbTdjG6Tv7dg2R6V1fLgXL"  
+SECRET_KEY = "24GdUqOz4FlhQpGGGPntxBmKN8obgktq" 
 
 def p1():
     if "chat_history" not in st.session_state:  
         st.session_state["chat_history"] = []  
       
     def main(prompt):  
-        url = "https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/completions_pro?access_token=" + get_access_token()  
+        url = "https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/eb-instant?access_token=" + get_access_token()  
       
         payload = json.dumps({  
             "messages": [  
@@ -100,7 +101,46 @@ def p1():
 
 def p2():
     st.title("文章词汇分析")
-
+    txt = st.text_area(
+    "输入文字",
+    """
+    
+    """
+    )
+    if st.button("确认提交"):
+        st.write(f'你写了{len(txt)}个字')
+        list1 = jieba.lcut(txt)
+        
+        counts = {}
+        for i in list1:
+            if len(i) == 1:
+                continue
+            counts[i] = counts.get(i,0)+1
+        
+        list4 = list(counts.items())
+        list4.sort(key=lambda x: x[1],reverse=1)
+        list5 = list4[0:100]
+        d1 = dict(list5)
+        
+        list2 = list(d1.keys())
+        list3 = list(d1.values())
+        from pyecharts import options as opts
+        from pyecharts.charts import Bar
+        from pyecharts.faker import Faker
+        from streamlit_echarts import st_pyecharts
+        
+        c = (
+            Bar()
+            .add_xaxis(list2)
+            .add_yaxis(" ",list3, color="blue"and"red")
+            .set_global_opts(
+                title_opts=opts.TitleOpts(title="词频统计"),
+                datazoom_opts=[opts.DataZoomOpts(), opts.DataZoomOpts(type_="inside")],
+            )
+        )
+        st_pyecharts(c)
+        
+    
 pagef = {
     "王鹤宇的主页":p1,
     "统计词汇":p2
@@ -108,4 +148,3 @@ pagef = {
 
 s = st.sidebar.selectbox("选择页面",pagef.keys())
 pagef[s]()
-
