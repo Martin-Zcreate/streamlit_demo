@@ -10,34 +10,21 @@ API_KEY = "ZB7qXhepNoq0B9HCGGvr6v8Z"
 SECRET_KEY = "p52DihWmG17m9jf1xjNw7n0gbjTzwBGa" 
 
 def p1():
-
+    
+    st.title('智能英语学习机')#应用名称
     st.write("欢迎来到英语学习专区 👋作者:中国  杨岱铭   你好吗(｡･∀･)ﾉﾞ嗨")
     #video_file = open("https://pixabay.com/en/videos/star-long-exposure-starry-sky-sky-6962/", 'rb')
     #video_bytes = video_file.read()
-    st.video("https://www.bilibili.com/video/BV1Gc411v7g1/?spm_id_from=333.1073.high_energy.content.click")
+    #st.video("https://www.bilibili.com/video/BV1Gc411v7g1/?spm_id_from=333.1073.high_energy.content.click")
     
 
-    st.sidebar.success("选择一个选项")
-    st.sidebar.success("教程")
-    st.sidebar.success("AI专区")
 
-    st.title('智能英语学习机')#应用名称
+
+ 
 
     st.markdown("""
-                娱乐1:https://www.douyin.com/
-                
-                娱乐2:https://www.bilibili.com/
-                
-                视频:https://www.bilibili.com/video/BV1DB421673S/?spm_id_from=333.1007.tianma.1-2-2.click
-                
-                windows下载:https://www.microsoft.com/zh-cn/software-download/
-                
-                微软官网:https://www.microsoft.com/zh-cn/
-                
-                msdn:https://msdn.itellyou.cn/
-                
                 专为英语而生\n
-                版本1.0v\n
+                版本1.0\n
                 它可以:\n
                     1.翻译(单词,词组和文章)
                     2.生成一篇英语文章(3-6年级)
@@ -58,7 +45,7 @@ def p2():
         st.session_state["chat_history"] = []  
       
     def main(prompt):  
-        url = "https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/completions_pro?access_token=" + get_access_token()  
+        url = "https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/eb-instant?access_token=" + get_access_token()  
       
         payload = json.dumps({  
             "messages": [  
@@ -231,27 +218,27 @@ def p3():
 def p4():
     st.title("智能英语学习机教程")
     st.markdown("""
-                1.点击"杨岱铭的主页"(视频有Bug)。\n
+                1.点击"选择页面"下面的框。\n
                 2.选择选项:\n
-                    ①学习专区(语文、数学、英语都可以,按钮以英语为主):\n
-                        ①点击按钮即可快捷回答。\n
-                        ②可以在输入框内提问(敏感性息除外)。\n
+                    ①杨岱铭的主页:\n
+                        ①了解网页信息,版本,开发者等。
                     ②网页简介:\n
                         ①可以了解这个网页。\n
-                3.主页的几个链接可以点,休闲娱乐,办公下载用。\n
+                3. 在问答区问答时,请注意您的语言文明,Tankyou!
                 制作不易,不喜勿喷🤗🤗🤗
                 """)
     
         
     
 pagef = {
-    "杨岱铭的主页" : p1,
     "学习专区(语文、数学、英语都可以,按钮以英语为主)" : p2,
+    "杨岱铭的主页" : p1,
     "网页简介" : p3,
     "教程" : p4
     }
     
 s = st.sidebar.selectbox("选择页面",pagef.keys())
 pagef[s]()
+
 
 
