@@ -33,7 +33,7 @@ def p2():
         st.session_state["chat_history"] = []  
       
     def main(prompt):  
-        url = "https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/completions_pro?access_token=" + get_access_token()  
+        url = "https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/eb-instant?access_token=" + get_access_token()  
       
         payload = json.dumps({  
             "messages": [  
@@ -139,31 +139,6 @@ def p3():
     st.title("原神~启动!!!!")
 
 
-
-#st.session_state["liao"]=[]
-#def p4():
-    
-#    for i in len(st.session_state["liao"]):
-#        text1 =st.chat_message("user")
-#       t_info = st.session_state['liao'][i]
-#      text1.write(f"{t_info}")
-# st.title("留下你的名字吧")
-#title1 = st.text_input(' ', '')
-#    st.title("内容")
-#   txt1 = st.text_area(
-#      " ",
-#     "",
-#)
-#t = title1+":\n"+txt1
-#st.session_state['liao'].append(t) 
-    
-#if st.button("提交"):
-#   for i in len(st.session_state["liao"]):
-#      text1 =st.chat_message("user")
-#     t_info = st.session_state['liao'][i]
-#    text1.write(f"{t_info}")
-   
-    
 def p4():
     # 检查是否存在留言记录文件，如果不存在则创建一个空列表
     if not os.path.exists('comments.txt'):
@@ -211,11 +186,9 @@ pagef={
        "主页":p1,
        "学习专区":p2,
        "留言板":p4,
-       "站长大人":p3
+      #"站长大人":p3
        }
 s=st.sidebar.selectbox(
     "选择页面",pagef.keys()
     )
 pagef[s]()
-
-
