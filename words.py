@@ -34,15 +34,15 @@ txt = ""
 def p2():
     uploaded_file = st.file_uploader("Choose a file")
     if uploaded_file is not None:
-        txt = StringIO(uploaded_file.getvalue().decode("utf-8"))
-        # st.write(stringio)
+        stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
+        st.write(stringio)
     else:
         txt = st.text_area(
                 "",
                 ""
                 "",
                 )
-
+'''
     st.write(f'你输入了{len(txt)}个字.')
 
     list1 = jieba.lcut(txt)
@@ -73,7 +73,7 @@ def p2():
         )
     )
     st_pyecharts(c)
-    
+'''
 pagef = {
     "成绩分析":p1,
     "词频统计":p2
