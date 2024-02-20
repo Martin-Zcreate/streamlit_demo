@@ -30,7 +30,7 @@ def p1():
             .set_global_opts(title_opts=opts.TitleOpts(title="成绩分布图"))
         )
         st_pyecharts(c)
-txt = None
+txt = ""
 def p2():
     uploaded_file = st.file_uploader("Choose a file")
     if uploaded_file is not None:
