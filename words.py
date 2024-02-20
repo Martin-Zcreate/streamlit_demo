@@ -37,7 +37,11 @@ def p2():
         txt = StringIO(uploaded_file.getvalue().decode("utf-8"))
         # st.write(stringio)
     else:
-        txt = st.text_area()
+        txt = st.text_area(
+                "",
+                ""
+                "",
+                )
 
     st.write(f'你输入了{len(txt)}个字.')
 
