@@ -36,6 +36,7 @@ def p2():
     if uploaded_file is not None:
         stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
         st.write(stringio)
+        st.write(type(stringio))
     else:
         txt = st.text_area(
                 "",
