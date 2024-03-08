@@ -1,0 +1,11 @@
+import streamlit as st
+st.title("音乐🌝")
+a=st.selectbox("选择你喜欢的音乐",
+               ("天空之城","夜曲")
+               
+               
+               )
+st.write(a)
+st.image(f"picture1/{a}.jpg")
+b=open(f"music1/{a}.mp3","rb").read()
+st.audio(b)
