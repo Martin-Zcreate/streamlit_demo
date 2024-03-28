@@ -36,7 +36,7 @@ def p1():
                 """
     )
     
-    st.image('AAA.png', caption='windows11出品,必是精品')
+    #st.image('AAA.png', caption='windows11出品,必是精品')
 
 
 
@@ -213,7 +213,7 @@ def p3():
                 在此网站内,请注意您的语言文明,谢谢。\n
                 制作不易,不喜勿喷🤗🤗🤗
                 """)
-    st.image('UUU.png', caption='杨岱铭出品,必是精品')
+    #st.image('UUU.png', caption='杨岱铭出品,必是精品')
 
 def p4():
     st.title("智能英语学习机教程")
