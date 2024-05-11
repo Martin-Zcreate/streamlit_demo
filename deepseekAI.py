@@ -1,0 +1,99 @@
+import streamlit as st
+from openai import OpenAI
+import pandas as pd
+import os
+
+st.title("支持多轮对话的网页")
+
+if "chat_history" not in st.session_state:  
+    st.session_state["chat_history"] = [] 
+if 'initialized' not in st.session_state:
+    st.session_state['initialized'] = False
+if 'pro' not in st.session_state:
+    st.session_state['pro'] = ''
+if 'df' not in st.session_state:
+    st.session_state['df'] = []
+
+file_path = '聊天记录/聊天记录.csv'
+
+def output_data():
+    for i in range(len(st.session_state['df'])):
+        user_info=st.chat_message("user")
+        user_content=st.session_state['df'].loc[i,'用户']
+        user_info.write(user_content)
+        
+        assistant_info=st.chat_message("assistant")
+        assistant_content=st.session_state['df'].loc[i,'AI']
+        assistant_info.write(assistant_content)
+
+if st.session_state['initialized'] == False:
+    if os.path.exists(file_path):
+        st.session_state['df'] = pd.read_csv(file_path)
+    else:
+        st.session_state['df'].to_csv(file_path, index=False)
+    output_data()
+    st.session_state['pro'] = ''
+    
+    t = len(st.session_state['df'])-5
+    if t<0: t=0
+    for i in range(t,len(st.session_state['df'])):
+        st.session_state['pro'] += st.session_state['df'].loc[i,'用户'] + st.session_state['df'].loc[i,'AI']
+    st.session_state['initialized'] = True
+
+def main(prompt):
+    s = ""
+    client = OpenAI(api_key="sk-fb2b9c1cc9934d1890b659d7a147f18d", base_url="https://api.deepseek.com/")
+    
+    response = client.chat.completions.create(
+        model="deepseek-chat",
+        messages=[
+            {"role": "system", "content": "助理"},
+            {"role": "user", "content": prompt},
+        ],
+        stream=True
+    )
+    
+    user_info=st.chat_message("user")
+    user_info.write(user_input)
+    
+    assistant_info=st.chat_message("assistant")
+    empty_p = assistant_info.empty()
+    for i in response:
+        s+=i.choices[0].delta.content
+        empty_p.write(s)
+    return s
+
+if __name__ == '__main__':
+    user_input=st.chat_input("我们来对话吧")
+    
+    with st.sidebar:
+        if st.sidebar.button("清空内容"):
+            st.session_state['chat_history'] = []
+        
+    if user_input is not None:
+        progrss_bar=st.empty()
+        with st.spinner("内容已提交,正在解答,请等待!"):
+            output_data()
+            st.session_state['pro'] += user_input
+            feedback = main(st.session_state['pro'])
+        if feedback:
+            progrss_bar.progress(100)
+            st.session_state['chat_history']=[[user_input,feedback]]
+            new_df = pd.DataFrame(st.session_state["chat_history"], columns=['用户', 'AI'])
+            st.session_state['df'] = pd.concat([st.session_state['df'], new_df], ignore_index=True)
+            # 保存更新后的数据到csv文件
+            st.session_state['df'].to_csv(file_path, index=False)
+        else:
+            st.info("🤔对不起,我无法回答这个问题!请换一个问题.")
+
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
