@@ -13,8 +13,8 @@ if 'pro' not in st.session_state:
     st.session_state['pro'] = ''
 if 'df' not in st.session_state:
     st.session_state['df'] = []
-
-file_path = '聊天记录/聊天记录.csv'
+if 'file_path' not in st.session_state:
+    st.session_state['file_path'] = '聊天记录/聊天记录.csv'
 
 def output_data():
     for i in range(len(st.session_state['df'])):
@@ -27,10 +27,10 @@ def output_data():
         assistant_info.write(assistant_content)
 
 if st.session_state['initialized'] == False:
-    if os.path.exists(file_path):
-        st.session_state['df'] = pd.read_csv(file_path)
+    if os.path.exists(st.session_state['file_path']):
+        st.session_state['df'] = pd.read_csv(st.session_state['file_path'])
     else:
-        st.session_state['df'].to_csv(file_path, index=False)
+        st.session_state['df'].to_csv(st.session_state['file_path'], index=False)
     output_data()
     st.session_state['pro'] = ''
     
@@ -82,7 +82,7 @@ if __name__ == '__main__':
             new_df = pd.DataFrame(st.session_state["chat_history"], columns=['用户', 'AI'])
             st.session_state['df'] = pd.concat([st.session_state['df'], new_df], ignore_index=True)
             # 保存更新后的数据到csv文件
-            st.session_state['df'].to_csv(file_path, index=False)
+            st.session_state['df'].to_csv(st.session_state['file_path'], index=False)
         else:
             st.info("🤔对不起,我无法回答这个问题!请换一个问题.")
 
