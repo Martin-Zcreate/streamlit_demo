@@ -5,6 +5,14 @@ import os
 
 st.title("支持多轮对话的网页")
 
+hide_streamlit_style = """
+<style>
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+</style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
 if "chat_history" not in st.session_state:  
     st.session_state["chat_history"] = [] 
 if 'initialized' not in st.session_state:
