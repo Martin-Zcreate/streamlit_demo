@@ -65,10 +65,6 @@ def main(prompt):
 
 if __name__ == '__main__':
     user_input=st.chat_input("我们来对话吧")
-    
-    with st.sidebar:
-        if st.sidebar.button("清空内容"):
-            st.session_state['chat_history'] = []
         
     if user_input is not None:
         progrss_bar=st.empty()
