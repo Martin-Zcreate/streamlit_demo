@@ -27,11 +27,9 @@ if"create" not in st.session_state:
 if  st.session_state["create"]== False:
     if os.path.exists(st.session_state["file"]):
         st.session_state["df"]=pd.read_csv(st.session_state["file"])
-        
-        
     else:
         st.session_state["df"].to_csv(st.session_state["file"],index=False)
-    st.session_state["create"]== True
+    st.session_state["create"] = True
         
         
 
