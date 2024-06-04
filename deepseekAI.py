@@ -4,6 +4,7 @@ import pandas as pd
 import os
 import streamlit.components.v1 as components
 
+st.set_page_config(page_title="智酷AI助手", layout="centered", page_icon="🤖")  
 def hide_streamlit_icon():
     # 使用HTML和CSS隐藏默认的Streamlit图标
     hide_icon_html = """
@@ -17,7 +18,7 @@ def hide_streamlit_icon():
     components.html(hide_icon_html, height=0)
 
 hide_streamlit_icon()
-st.set_page_config(page_title="智酷AI助手", layout="centered", page_icon="🤖")  
+
 st.title("智酷AI助手")
 
 if "chat_history" not in st.session_state:  
