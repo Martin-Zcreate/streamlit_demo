@@ -27,7 +27,7 @@ if 'file_path' not in st.session_state:
 
 def output_data():
     st.session_state['pro'] = ''
-    t = len(st.session_state['df'])-2
+    t = len(st.session_state['df'])-10
     if t<0:
         t=0
     for i in range(t,len(st.session_state['df'])):
@@ -48,14 +48,6 @@ if st.session_state['initialized'] == False:
     else:
         st.session_state['df'].to_csv(st.session_state['file_path'], index=False)
     output_data()
-    '''
-    st.session_state['pro'] = ''
-    
-    t = len(st.session_state['df'])-2
-    if t<0: t=0
-    for i in range(t,len(st.session_state['df'])):
-        st.session_state['pro'] += st.session_state['df'].loc[i,'user'] + st.session_state['df'].loc[i,'assistant']
-    '''
     st.session_state['initialized'] = True
 
 def main(prompt):
