@@ -2,17 +2,23 @@ import streamlit as st
 from openai import OpenAI
 import pandas as pd
 import os
+import streamlit.components.v1 as components
 
+def hide_streamlit_icon():
+    # 使用HTML和CSS隐藏默认的Streamlit图标
+    hide_icon_html = """
+    <style>
+    [data-testid="stSidebarNav"]::before {
+        content: "";
+    }
+    </style>
+    """
+    # 将HTML标记渲染为Streamlit组件
+    components.html(hide_icon_html, height=0)
+
+hide_streamlit_icon()
 st.set_page_config(page_title="智酷AI助手", layout="centered", page_icon="🤖")  
 st.title("智酷AI助手")
-
-hide_streamlit_style = """
-<style>
-#MainMenu {visibility: hidden;}
-footer {visibility: hidden;}
-</style>
-"""
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 if "chat_history" not in st.session_state:  
     st.session_state["chat_history"] = [] 
