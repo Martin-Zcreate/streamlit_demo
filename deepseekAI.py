@@ -3,6 +3,7 @@ from openai import OpenAI
 import pandas as pd
 import os
 
+st.set_page_config(page_title="智酷AI助手", layout="centered", page_icon="🤖")  
 st.title("智酷AI助手")
 
 hide_streamlit_style = """
@@ -45,7 +46,7 @@ if st.session_state['initialized'] == False:
     t = len(st.session_state['df'])-5
     if t<0: t=0
     for i in range(t,len(st.session_state['df'])):
-        st.session_state['pro'] += st.session_state['df'].loc[i,'用户'] + st.session_state['df'].loc[i,'assistant']
+        st.session_state['pro'] += st.session_state['df'].loc[i,'user'] + st.session_state['df'].loc[i,'assistant']
     st.session_state['initialized'] = True
 
 def main(prompt):
