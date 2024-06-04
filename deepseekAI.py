@@ -26,7 +26,7 @@ if 'file_path' not in st.session_state:
     st.session_state['file_path'] = '聊天记录/聊天记录.csv'
 
 def output_data():
-    for i in range(len(st.session_state['df'])):
+    for i in range(len(st.session_state['df'])-2,len(st.session_state['df'])):
         user_info=st.chat_message("user")
         user_content=st.session_state['df'].loc[i,'user']
         user_info.write(user_content)
@@ -56,7 +56,7 @@ def main(prompt):
     response = client.chat.completions.create(
         model="deepseek-chat",
         messages=[
-            {"role": "system", "content": "你是智酷机器人开发的AI助手"},
+            {"role": "system", "content": "你是智酷机器人开发的AI助手,你可以写作文,做数学题目,学习英语"},
             {"role": "user", "content": prompt},
         ],
         stream=True
