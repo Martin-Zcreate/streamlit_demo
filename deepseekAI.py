@@ -83,7 +83,7 @@ if __name__ == '__main__':
             st.session_state['pro'] += user_input
             feedback = main(st.session_state['pro'])
         if feedback:
-            progrss_bar.progress(10)
+            progrss_bar.progress(100)
             st.session_state['chat_history']=[[user_input,feedback]]
             new_df = pd.DataFrame(st.session_state["chat_history"], columns=['user', 'assistant'])
             st.session_state['df'] = pd.concat([st.session_state['df'], new_df], ignore_index=True)
