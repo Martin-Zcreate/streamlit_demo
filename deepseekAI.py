@@ -30,7 +30,7 @@ def output_data():
     t = len(st.session_state['df'])-2
     if t<0:
         t=0
-    for i in range(len(t,len(st.session_state['df'])):
+    for i in range(t,len(st.session_state['df'])):
         user_info=st.chat_message("user")
         user_content=st.session_state['df'].loc[i,'user']
         user_info.write(user_content)
