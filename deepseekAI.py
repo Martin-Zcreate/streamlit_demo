@@ -26,7 +26,11 @@ if 'file_path' not in st.session_state:
     st.session_state['file_path'] = '聊天记录/聊天记录.csv'
 
 def output_data():
-    for i in range(len(st.session_state['df'])-2,len(st.session_state['df'])):
+    st.session_state['pro'] = ''
+    t = len(st.session_state['df'])-2
+    if t<0:
+        t=0
+    for i in range(len(t,len(st.session_state['df'])):
         user_info=st.chat_message("user")
         user_content=st.session_state['df'].loc[i,'user']
         user_info.write(user_content)
@@ -35,18 +39,23 @@ def output_data():
         assistant_content=st.session_state['df'].loc[i,'assistant']
         assistant_info.write(assistant_content)
 
+        st.session_state['pro'] += "user:"+user_content+"\n"
+        st.session_state['pro'] += "system:"+assistant_content+"\n"
+
 if st.session_state['initialized'] == False:
     if os.path.exists(st.session_state['file_path']):
         st.session_state['df'] = pd.read_csv(st.session_state['file_path'])
     else:
         st.session_state['df'].to_csv(st.session_state['file_path'], index=False)
     output_data()
+    '''
     st.session_state['pro'] = ''
     
-    t = len(st.session_state['df'])-5
+    t = len(st.session_state['df'])-2
     if t<0: t=0
     for i in range(t,len(st.session_state['df'])):
         st.session_state['pro'] += st.session_state['df'].loc[i,'user'] + st.session_state['df'].loc[i,'assistant']
+    '''
     st.session_state['initialized'] = True
 
 def main(prompt):
@@ -82,7 +91,7 @@ if __name__ == '__main__':
             st.session_state['pro'] += user_input
             feedback = main(st.session_state['pro'])
         if feedback:
-            progrss_bar.progress(100)
+            progrss_bar.progress(10)
             st.session_state['chat_history']=[[user_input,feedback]]
             new_df = pd.DataFrame(st.session_state["chat_history"], columns=['user', 'assistant'])
             st.session_state['df'] = pd.concat([st.session_state['df'], new_df], ignore_index=True)
