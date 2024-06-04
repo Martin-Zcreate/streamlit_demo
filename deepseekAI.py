@@ -3,7 +3,7 @@ from openai import OpenAI
 import pandas as pd
 import os
 
-st.title("支持多轮对话的网页")
+st.title("智酷AI助手")
 
 hide_streamlit_style = """
 <style>
@@ -27,11 +27,11 @@ if 'file_path' not in st.session_state:
 def output_data():
     for i in range(len(st.session_state['df'])):
         user_info=st.chat_message("user")
-        user_content=st.session_state['df'].loc[i,'用户']
+        user_content=st.session_state['df'].loc[i,'user']
         user_info.write(user_content)
         
         assistant_info=st.chat_message("assistant")
-        assistant_content=st.session_state['df'].loc[i,'AI']
+        assistant_content=st.session_state['df'].loc[i,'assistant']
         assistant_info.write(assistant_content)
 
 if st.session_state['initialized'] == False:
@@ -45,7 +45,7 @@ if st.session_state['initialized'] == False:
     t = len(st.session_state['df'])-5
     if t<0: t=0
     for i in range(t,len(st.session_state['df'])):
-        st.session_state['pro'] += st.session_state['df'].loc[i,'用户'] + st.session_state['df'].loc[i,'AI']
+        st.session_state['pro'] += st.session_state['df'].loc[i,'用户'] + st.session_state['df'].loc[i,'assistant']
     st.session_state['initialized'] = True
 
 def main(prompt):
@@ -55,7 +55,7 @@ def main(prompt):
     response = client.chat.completions.create(
         model="deepseek-chat",
         messages=[
-            {"role": "system", "content": "助理"},
+            {"role": "system", "content": "你是智酷机器人开发的AI助手"},
             {"role": "user", "content": prompt},
         ],
         stream=True
@@ -83,7 +83,7 @@ if __name__ == '__main__':
         if feedback:
             progrss_bar.progress(100)
             st.session_state['chat_history']=[[user_input,feedback]]
-            new_df = pd.DataFrame(st.session_state["chat_history"], columns=['用户', 'AI'])
+            new_df = pd.DataFrame(st.session_state["chat_history"], columns=['user', 'assistant'])
             st.session_state['df'] = pd.concat([st.session_state['df'], new_df], ignore_index=True)
             # 保存更新后的数据到csv文件
             st.session_state['df'].to_csv(st.session_state['file_path'], index=False)
