@@ -5,7 +5,7 @@ from openai import OpenAI  # 导入OpenAI库
 def ai(prompt):
     r = ''
     # 创建一个deepseek客户端实例
-    client = OpenAI(api_key="sk-a018798f114c42b783fdf8c2760f49e2", base_url="https://api.deepseek.com")
+    client = OpenAI(api_key="sk-d7f5a176ad7546429ca5c9681c81b899", base_url="https://api.deepseek.com")
     
     # 发送一个请求到deepseek API，获取AI的回复
     response = client.chat.completions.create(
