@@ -60,7 +60,7 @@ st.session_state["history"]=''
 output()
 prompt=st.chat_input("请输入")
 if prompt is not None:
-    
+    st.session_state["history"]+=prompt
         
         
         
