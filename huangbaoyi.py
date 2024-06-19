@@ -38,7 +38,7 @@ def ai(prompt,temperature):
     r=''
 
 
-    client = OpenAI(api_key="sk-a018798f114c42b783fdf8c2760f49e2", base_url="https://api.deepseek.com")
+    client = OpenAI(api_key="sk-d7f5a176ad7546429ca5c9681c81b899", base_url="https://api.deepseek.com")
     
     response = client.chat.completions.create(
         model="deepseek-chat",
