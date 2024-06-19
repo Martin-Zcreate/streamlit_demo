@@ -38,7 +38,7 @@ prompt=st.chat_input("请输入问题")
 st.session_state["history"]=''
 
 for i in range(len(st.session_state["prompt"])):
-    st.chat_message("user").write(st.session_state["prompt"])
+    st.chat_message("user").write(st.session_state["prompt"][i][0])
     st.chat_message("AI").write(st.session_state["prompt"][i][1])
     st.session_state["history"]+="user:"+st.session_state["prompt"][i][0]+"\n"
     st.session_state["history"]+="system:"+st.session_state["prompt"][i][1]+"\n"
