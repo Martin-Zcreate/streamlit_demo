@@ -31,6 +31,7 @@ if "prompt" not in st.session_state:
     st.session_state["prompt"]=[]
 if "history" not in st.session_state:
     st.session_state["history"]=''
+    ai("你是谁")
 
 prompt=st.chat_input("请输入问题")
 
