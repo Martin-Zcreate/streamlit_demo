@@ -48,8 +48,6 @@ if prompt is not None:
     r=ai(st.session_state["history"])
     st.session_state["prompt"]+=[[prompt,r]]
     
-    ai(prompt)
-    
     
 
 
