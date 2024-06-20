@@ -34,7 +34,7 @@ request_url = "https://aip.baidubce.com/rest/2.0/ocr/v1/accurate_basic"
 # 二进制方式打开图片文件
 img_file_buffer = st.camera_input("点击拍照")
 if img_file_buffer is not None:
-    img = Image.open(img_file_buffer).tobytes()
+    imag = Image.open(img_file_buffer).tobytes()
 
     # f = open('C:/Users/z/streamlitdemo/123.png', 'rb')
     # img = base64.b64encode(imag.read())
