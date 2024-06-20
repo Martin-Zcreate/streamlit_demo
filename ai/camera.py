@@ -46,6 +46,7 @@ if img_file_buffer is not None:
     headers = {'content-type': 'application/x-www-form-urlencoded'}
     response = requests.post(request_url, data=params, headers=headers)
     if response:
-        s = response.json()
+        for i in response.json()['words_result']:
+            s+=i['words']
         st.write(s)
         ai(s,pro,1)
