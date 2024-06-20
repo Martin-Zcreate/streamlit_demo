@@ -49,4 +49,4 @@ if img_file_buffer is not None:
         for i in response.json()['words_result']:
             s+=i['words']
         st.write(s)
-        ai(s,pro,1)
+        ai(s,1,pro)
