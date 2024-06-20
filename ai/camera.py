@@ -3,7 +3,7 @@ from PIL import Image
 import numpy as np
 from openai import OpenAI
 
-img_file_buffer = st.camera_input("点击拍照")
+img_file_buffer = st.camera_input("点击拍照1")
 
 def ai(prompt,temperature,pro):
     r=''
