@@ -37,8 +37,8 @@ if img_file_buffer is not None:
     imag = Image.open(img_file_buffer)
     pic = imag.save('123.png', 'PNG')
 
-    f = open(pic, 'rb')
-    img = base64.b64encode(pic.read())
+    f = open('123.png', 'rb')
+    img = base64.b64encode(f.read())
     
     params = {"image":img}
     access_token = '24.2c2db58f2d82deb5596706316b5342a8.2592000.1721465622.282335-84920272'
