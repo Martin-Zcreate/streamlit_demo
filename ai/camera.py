@@ -35,7 +35,7 @@ request_url = "https://aip.baidubce.com/rest/2.0/ocr/v1/accurate_basic"
 img_file_buffer = st.camera_input("点击拍照")
 if img_file_buffer is not None:
     imag = Image.open(img_file_buffer)
-    pic = image.save('123.png', 'PNG')
+    pic = imag.save('123.png', 'PNG')
 
     f = open(pic, 'rb')
     img = base64.b64encode(pic.read())
