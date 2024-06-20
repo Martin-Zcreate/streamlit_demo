@@ -47,5 +47,5 @@ if img_file_buffer is not None:
     response = requests.post(request_url, data=params, headers=headers)
     if response:
         s = response.json()
-        write(s)
+        st.write(s)
         ai(s,pro,1)
