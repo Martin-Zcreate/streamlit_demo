@@ -38,6 +38,7 @@ st.title('留言板')
 video_file = st.file_uploader("上传视频", type=["mp4", "mov", "avi"])
 video_path = None
 if video_file is not None:
+    os.makedirs("videos", exist_ok=True)  # 确保视频目录存在
     video_path = f"videos/{video_file.name}"
     with open(video_path, "wb") as f:
         f.write(video_file.getbuffer())
@@ -47,6 +48,7 @@ if video_file is not None:
 image_file = st.file_uploader("上传图片", type=["png", "jpg", "jpeg"])
 image_path = None
 if image_file is not None:
+    os.makedirs("images", exist_ok=True)  # 确保图片目录存在
     image_path = f"images/{image_file.name}"
     with open(image_path, "wb") as f:
         f.write(image_file.getbuffer())
