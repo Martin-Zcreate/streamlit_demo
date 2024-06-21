@@ -93,9 +93,9 @@ def p3():
 
      if picture is not None:
          imag = Image.open(picture).save("123.png","PNG")
-         img_array = np.array(imag)
-         st.write(type(img_array))
-         st.write(img_array.shape)
+         # img_array = np.array(imag)
+         # st.write(type(img_array))
+         # st.write(img_array.shape)
          
          s = ''
          f = open("123.png", 'rb')
