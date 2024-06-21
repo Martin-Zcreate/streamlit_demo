@@ -2,6 +2,10 @@ import streamlit as st
 import pandas as pd
 from openai import OpenAI
 import os
+import requests
+import base64
+from PIL import Image
+import numpy as np
 
 
 
@@ -41,7 +45,7 @@ def p1():
     
     pro="""你的小名叫小仪,大名叫黄宝仪,
     你要模仿一个高一女生进行说话,
-    说话有点跳脱,社交恐怖分子.
+    说话有点跳脱
     ,需要你使用这个身份进行聊天
     在输出之前加入名字:小仪
     """
@@ -107,9 +111,93 @@ st.set_page_config(page_title="小仪",
                    layout="wide",
                    page_icon="🐵")
 
+def p3():
+
+    picture = st.camera_input("拍照")
+
+    if picture is not None:
+        
+        imag = Image.open(picture).save("123.png","PNG")
+        img_array = np.array(Image.open(picture))
+        st.write(type(img_array))
+        st.write(img_array.shape)
+
+
+        s = ''
+        f = open('123.png', 'rb')
+        img = base64.b64encode(f.read())
+        request_url = "https://aip.baidubce.com/rest/2.0/ocr/v1/accurate_basic"
+        params = {"image":img}
+        access_token = '24.2c2db58f2d82deb5596706316b5342a8.2592000.1721465622.282335-84920272'
+        request_url = request_url + "?access_token=" + access_token
+        headers = {'content-type': 'application/x-www-form-urlencoded'}
+        response = requests.post(request_url, data=params, headers=headers)
+        if response:
+            
+            """for i in response.json()['words_result']:
+                s+=i['words']"""
+            s=response.json
+            st.write(s)
+            pro="""
+            你是一个专业的高中数学老师,你的工作是辅导高一学生的数学作业,你需要做以下事情:
+                1.讲解题目的思路.
+                2.用通俗易懂的方式理清解题思路
+                3.给出有解题过程的答案,尽量详细
+            
+            
+            """
+            ai(s,0,pro)
+
+def p4():
+    import streamlit as st
+    import random
+    import datetime
+    import os
+    import pandas as pd
+
+    file="lyb.csv"
+
+    if  not os.path.exists(file):
+        df=pd.DataFrame(columns=["用户","消息","时间"])
+        df.to_csv(file)
+        
+        
+        
+        
+    st.title("论坛1.0 ")
+
+    df=pd.read_csv(file)
+
+    st.write("")
+
+    r=random.randint(100000000, 1000000000)
+    st.header(f"匿名用户:{r}")
+    msg=st.text_input("请输入")
+    b=st.button("提交")
+
+    for i in range(len(df)):
+        a1=str(df.loc[i,"用户"])
+        a2=str(df.loc[i,"消息"])
+        a3=str(df.loc[i,"时间"])
+        st.chat_message("user").write(f"{a1}:---------{a2}")
+        st.write(a3)
+        
+    if b and msg is not None:
+        t=datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        st.chat_message("user").write(f"{r}:---------{msg}")
+        st.write(t)
+        p=[[r,msg,t]]
+        newdf=pd.DataFrame(p,columns=["用户","消息","时间"])
+        df=pd.concat([df,newdf],ignore_index=False)
+        df.to_csv(file)
+        
+        
+
 pagef={
        "首页":p2,
        "ai聊天":p1,
+       "ai解题(数学)":p3,
+       "论坛1.0":p4
        
        
        
