@@ -118,9 +118,9 @@ def p3():
     if picture is not None:
         
         imag = Image.open(picture).save("123.png","PNG")
-        img_array = np.array(Image.open(picture))
-        st.write(type(img_array))
-        st.write(img_array.shape)
+        #img_array = np.array(Image.open(picture))
+        #st.write(type(img_array))
+        #st.write(img_array.shape)
 
 
         s = ''
@@ -134,9 +134,8 @@ def p3():
         response = requests.post(request_url, data=params, headers=headers)
         if response:
             
-            """for i in response.json()['words_result']:
-                s+=i['words']"""
-            s=response.json
+            for i in response.json()['words_result']:
+                s+=i['words']
             st.write(s)
             pro="""
             你是一个专业的高中数学老师,你的工作是辅导高一学生的数学作业,你需要做以下事情:
