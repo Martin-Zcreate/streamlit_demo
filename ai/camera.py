@@ -5,6 +5,7 @@ import streamlit as st
 from PIL import Image
 import numpy as np
 
+st.set_page_config(page_title="数学解题AI",layout="wide",page_icon="🙃" )
 
 def ai(prompt,temperature,pro):
     r=''
@@ -27,11 +28,15 @@ def ai(prompt,temperature,pro):
         ai_empty.write(r)
 
 pro = """
-你是一名专业的高中语文老师,你可以辅导学生完成作业,给出思路过程,并给出答案。
+你是一个专业的高中数学老师，你的工作是辅导高一学生的理解并做出数学题目,
+你需要做以下事情：
+1.讲解题目的思路。
+2.通俗易懂的方式如何理清解题思路。
+3.给出有解题过程的答案，尽量详细。
 """
 s=''
 request_url = "https://aip.baidubce.com/rest/2.0/ocr/v1/accurate_basic"
-# 二进制方式打开图片文件
+
 img_file_buffer = st.camera_input("点击拍照")
 if img_file_buffer is not None:
     imag = Image.open(img_file_buffer)
@@ -49,4 +54,4 @@ if img_file_buffer is not None:
         for i in response.json()['words_result']:
             s+=i['words']
         st.write(s)
-        ai(s,1,pro)
+        ai(s,0,pro)
