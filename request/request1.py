@@ -40,6 +40,7 @@ app_url = ["https://liushaofeng.streamlit.app",
            "https://wordspy-mpmtjhadzeyf5qchc97eex.streamlit.app/",
            "https://wuzehan.streamlit.app/",
            "https://zhaiyixuan.streamlit.app/",
+           "https://request2.streamlit.app/"
            ]
 
 def keep_alive():
@@ -60,7 +61,7 @@ def keep_alive():
         else:
             st.write(f"失败:{i}")
             s2+=1
-        time.sleep(random.randint(0,1))
+        time.sleep(random.randint(0,5))
     st.write(f"成功:{s1},失败:{s2}")
     t = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     p=[[f"成功:{s1},失败:{s2}",t]]
