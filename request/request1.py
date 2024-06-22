@@ -6,7 +6,7 @@ import pandas as pd
 import os
 import datetime
 
-file = "lyb.csv"
+file = "123.csv"
 
 if not os.path.exists(file):
     df = pd.DataFrame(columns=["消息","时间"])
