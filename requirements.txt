@@ -3,3 +3,6 @@ streamlit-echarts>=0.4.0
 jieba>=0.42.1
 matplotlib>=3.5.2
 openai>=1.10.0
+opencv>=4.5.4.60
+cvzone>=1.6.1
+pillow>=9.2.0
