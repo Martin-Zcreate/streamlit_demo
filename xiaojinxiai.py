@@ -9,7 +9,7 @@ def ai(prompt):
         model="deepseek-chat",
         messages=[
             {"role": "system", "content": """
-             你的名字叫"小明",你可以帮助我学习.你是由万载第三中学的肖晋汐开发的AI学习助手.
+             你的名字叫"小明",你可以帮助我学习.你是由万载第三中学七年级一班的肖晋汐开发的AI学习助手.
              """},
             {"role": "user", "content": prompt},
         ],
