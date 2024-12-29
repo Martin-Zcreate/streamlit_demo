@@ -29,7 +29,7 @@ st.set_page_config(page_title="刘晨鑫的AI",
                    page_icon="🤡🤡🤣🤣"
                    )
 
-st.title("智酷AI🤡🤡🤣🤣")
+st.title("刘晨鑫的AI🤡🤡🤣🤣")
 
 if "p" not in st.session_state:
     st.session_state["p"]=[]
