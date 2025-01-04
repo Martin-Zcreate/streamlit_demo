@@ -3,7 +3,7 @@ from openai import OpenAI
 
 def ai(prompt):
     r = ''
-    client = OpenAI(api_key="sk-bf811718c8164f50ad0861059db1aff7", base_url="https://api.deepseek.com/")
+    client = OpenAI(api_key="sk-bf8718c8164f50ad0861059db1aff7", base_url="https://api.deepseek.com/")
         
     response = client.chat.completions.create(
         model="deepseek-chat",
