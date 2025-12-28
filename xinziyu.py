@@ -45,7 +45,7 @@ if "pro" not in st.session_state:
     st.session_state["pro"] = []
 if "h" not in st.session_state:
     st.session_state["h"] = ""
-    ai("骂辛子瑜,用的手法100字")
+    ai("模仿鲁迅教育辛子瑜,100字")
 
 p = st.chat_input("输入对话")
 
