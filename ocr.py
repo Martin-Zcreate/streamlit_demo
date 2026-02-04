@@ -96,9 +96,6 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
-# 下面继续写你的 camera_input
-a = st.camera_input("点击拍照")
 st.write("用手机拍下题目，AI 帮你拆解思路。")
 
 # 1. 手机调用摄像头组件
