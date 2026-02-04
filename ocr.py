@@ -78,8 +78,12 @@ def AI(question_text):
 # ================= 网页界面布局 =================
 
 st.title("🤖智酷AI作业帮手")
-st.write("拍照讲题")
-img_file = st.file_uploader("拍照讲题,点我上传题目照片", type=['jpg', 'png', 'jpeg'])
+
+img_file = st.file_uploader(
+    "📸 点我直接拍摄作业", 
+    type=['jpg', 'png', 'jpeg'],
+    accept_multiple_files=False
+)
 
 
 if img_file:
