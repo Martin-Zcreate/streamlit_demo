@@ -79,10 +79,10 @@ def AI(question_text):
 
 st.title("🤖智酷AI作业帮手")
 st.write("拍照讲题")
-uploaded_file = st.file_uploader("点我启动高清相机", type=['jpg', 'png', 'jpeg'])
+img_file = st.file_uploader("拍照讲题,点我上传题目照片", type=['jpg', 'png', 'jpeg'])
 
 
-if uploaded_file:
+if img_file:
     # 显示个加载圈
     with st.spinner('正在识别题目...'):
         # f: 识别出的文字
