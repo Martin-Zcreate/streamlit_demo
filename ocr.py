@@ -1,6 +1,7 @@
 import streamlit as st
 import base64
 from openai import OpenAI
+from PIL import Image
 
 def get_img_str(file_path):
     with open(file_path, "rb") as f:
@@ -76,32 +77,12 @@ def AI(question_text):
 
 # ================= 网页界面布局 =================
 
-st.title("🤖 AI 作业帮手")
-# 注入 CSS 样式
-st.markdown(
-    """
-    <style>
-    /* 找到摄像头组件，强制宽度 100% */
-    [data-testid="stCameraInput"] {
-        width: 100% !important;
-    }
-    
-    /* 让里面的视频流也自动适应 */
-    [data-testid="stCameraInput"] video {
-        width: 100% !important;
-        height: auto !important;
-        border-radius: 10px; /* 加个圆角好看点 */
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-st.write("用手机拍下题目，AI 帮你拆解思路。")
+st.title("🤖智酷AI作业帮手")
+st.write("拍照讲题")
+uploaded_file = st.file_uploader("点我启动高清相机", type=['jpg', 'png', 'jpeg'])
 
-# 1. 手机调用摄像头组件
-img_file = st.camera_input("点击拍照")
 
-if img_file:
+if uploaded_file:
     # 显示个加载圈
     with st.spinner('正在识别题目...'):
         # f: 识别出的文字
