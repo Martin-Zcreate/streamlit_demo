@@ -6,3 +6,6 @@ openai>=1.10.0
 opencv-python
 cvzone>=1.6.1
 pillow>=9.2.0
+opencv-python
+cvzone
+mediapipe
