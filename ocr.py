@@ -7,9 +7,12 @@ def get_img_str(file_path):
     with open(file_path, "rb") as f:
         return base64.b64encode(f.read()).decode('utf-8')
 
-def get_ocr_text(uploaded_file):
+# 使用 cache_data 避免重复识别，节省 token 且优化体验
+@st.cache_data(show_spinner=False)
+def get_ocr_text(file_content):
+    # 注意：st.cache_data 对 bytes 更友好，所以传入 content 而不是 UploadedFile 对象
     a = "sk-vogujjwsiclsbtlaorwvnncwfidlxavtukoxcqlciakmhtkr"
-    b = "PaddlePaddle/PaddleOCR-VL-1.5"
+    b = "deepseek-ai/DeepSeek-OCR"
     
     # 建立连接
     client = OpenAI(
@@ -19,8 +22,7 @@ def get_ocr_text(uploaded_file):
 
     try:
         # d: 图片的 Base64 编码
-        c = uploaded_file.getvalue()
-        d = base64.b64encode(c).decode('utf-8')
+        d = base64.b64encode(file_content).decode('utf-8')
         
         print(f"正在发送请求给模型: {b} ...")
 
@@ -31,7 +33,7 @@ def get_ocr_text(uploaded_file):
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": "Output plain text only"},
+                        {"type": "text", "text": "请将这张图片里的所有文字和数学公式提取出来。重要：公式请使用 LaTeX 格式，行内公式用 $ 包裹，独立公式用 $$ 包裹，不要输出多余的Markdown标记。"},
                         {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{d}"}}
                     ]
                 }
@@ -45,26 +47,13 @@ def get_ocr_text(uploaded_file):
         st.error(f"OCR出错: {err}")
         return None
 
-
-def AI(question_text):
+def AI(messages):
     client = OpenAI(api_key="sk-af6ba48dbd8a4d1fb0d036551b9bbdc3",
                     base_url="https://api.deepseek.com")
     
     response = client.chat.completions.create(
         model="deepseek-chat",
-        messages=[
-            {"role": "system", "content": 
-             """
-              你是一位专业的老师。
-              1. 当学生问问题时，不要直接给完整答案。
-              2. 请使用"难度降级"法，把复杂的题目拆解成简单的步骤。
-              3. 先解释思路，再让学生去思考问题。
-              4. 写出答案,具体讲解下.
-              4. 公式请使用markdown格式。
-             """
-             },
-            {"role": "user", "content": f"学生发来了这道题，请讲解：\n{question_text}"},
-        ],
+        messages=messages,
         stream=True
     )
     return response
@@ -74,69 +63,111 @@ def AI(question_text):
 st.set_page_config(page_title="智酷AI作业帮手", page_icon="🤖")
 st.title("🤖智酷AI作业帮手")
 
-# 错误处理提示
-if "webrtc_failed" not in st.session_state:
-    st.session_state.webrtc_failed = False
+# 初始化 Session State
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+if "current_topic" not in st.session_state:
+    st.session_state.current_topic = None
+if "last_uploaded_file_id" not in st.session_state:
+    st.session_state.last_uploaded_file_id = None
 
-st.info("💡 提示：为保证最佳识别效果，请优先使用【系统相机】拍摄清晰照片。")
+st.markdown("""
+<style>
+/* 优化上传按钮样式 */
+div[data-testid="stFileUploader"] label {
+    font-size: 1.1rem !important;
+    font-weight: bold !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
-# 选项卡布局
-tab1, tab2 = st.tabs(["📱 系统相机 (推荐)", "  网页相机 (备用)"])
+st.info("💡 提示：点击下方按钮，直接选择【拍照】或【相机】以上传题目。")
 
-img_file = None
+# 1. 只保留上传/系统相机模式
+img_file = st.file_uploader(
+    "  点击拍摄题目", 
+    type=['jpg', 'png', 'jpeg'], 
+    accept_multiple_files=False,
+    key="uploader"
+)
 
-with tab1:
-    st.markdown("### 📷 调用手机原生相机")
-    st.markdown("""
-    <style>
-    /* 尝试通过 CSS 引导用户 */
-    div[data-testid="stFileUploader"] label {
-        font-size: 1.2rem !important;
-        color: #FF4B4B !important;
-        font-weight: bold !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
-    st.write("点击下方按钮，直接选择 **“拍照”** 或 **“相机”**。")
-    
-    img_file_upload = st.file_uploader(
-        "🔴 点这里 -> 选择 '拍照'", 
-        type=['jpg', 'png', 'jpeg'], 
-        accept_multiple_files=False,
-        key="uploader"
-    )
-    if img_file_upload:
-        img_file = img_file_upload
-
-with tab2:
-    st.markdown("### 💻 网页直接抓拍")
-    st.caption("注意：此模式在部分安卓/iOS设备上可能无法对焦，仅建议电脑端使用。")
-    img_file_camera = st.camera_input("点击拍摄", key="camera")
-    if img_file_camera:
-        img_file = img_file_camera
-
+# 处理图片上传逻辑
 if img_file:
-    # 显示个加载圈
-    with st.spinner('正在识别题目...'):
-        # f: 识别出的文字
-        f = get_ocr_text(img_file)
+    # 简单的文件ID生成，用于判断是否是新文件
+    file_content = img_file.getvalue()
+    file_id = f"{img_file.name}_{img_file.size}"
+    
+    # 如果是新上传的文件，进行 OCR 和初始化
+    if file_id != st.session_state.last_uploaded_file_id:
+        with st.spinner('正在识别题目...'):
+            ocr_result = get_ocr_text(file_content)
+            
+            if ocr_result:
+                st.session_state.current_topic = ocr_result
+                st.session_state.last_uploaded_file_id = file_id
+                
+                # 初始化新的对话
+                st.session_state.messages = [
+                    {"role": "system", "content": """
+                    你是一位专业的老师。
+                    1. 当学生问问题时，不要直接给完整答案。
+                    2. 请使用"难度降级"法，把复杂的题目拆解成简单的步骤。
+                    3. 先解释思路，再让学生去思考问题。
+                    4. 公式请使用 LaTeX 格式，行内公式用 $ 包裹，独立公式用 $$ 包裹。
+                    """},
+                    {"role": "user", "content": f"学生发来了这道题，请讲解：\n{ocr_result}"}
+                ]
+                
+                # 自动触发第一次讲解
+                with st.spinner('老师正在思考...'):
+                    # 占位符用于流式输出
+                    full_response = ""
+                    # 这里我们不直接显示，而是通过 rerun 让下面的聊天循环处理
+                    # 但为了用户体验，首次可以直接调用并存入 history
+                    stream = AI(st.session_state.messages)
+                    for chunk in stream:
+                        if chunk.choices[0].delta.content:
+                            full_response += chunk.choices[0].delta.content
+                    
+                    st.session_state.messages.append({"role": "assistant", "content": full_response})
 
-    if f:
-        # 显示识别结果给用户确认
-        st.subheader("📝 识别到的题目")
-        st.info(f)
+# 2. 显示识别到的题目（优化显示）
+if st.session_state.current_topic:
+    with st.expander("📝 查看识别到的题目", expanded=True):
+        # 使用 markdown 渲染 LaTeX
+        st.markdown(st.session_state.current_topic)
+
+# 3. 聊天界面
+st.subheader("👨‍🏫 老师讲解 & 答疑")
+
+# 显示历史消息 (跳过 system 消息和第一条包含大量 prompt 的 user 消息，只显示核心内容)
+for msg in st.session_state.messages:
+    if msg["role"] == "system":
+        continue
+    # 对于第一条 user 消息（包含"学生发来了这道题..."），我们可能不想重复显示，或者简化显示
+    # 这里简单起见，全部显示，或者你可以选择隐藏第一条 user 消息
+    if msg["role"] == "user" and "学生发来了这道题" in msg["content"]:
+        continue 
         
-        # 开始讲解
-        st.subheader("👨‍🏫 老师讲解")
-        result_area = st.empty() # 创建一个空位用来打字
-        
-        # g: 接收流式回复
-        g = AI(f)
-        
-        # 拼接回复
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+
+# 底部输入框
+if prompt := st.chat_input("哪里不懂？可以继续问老师..."):
+    # 显示用户提问
+    with st.chat_message("user"):
+        st.markdown(prompt)
+    st.session_state.messages.append({"role": "user", "content": prompt})
+
+    # 显示 AI 回复
+    with st.chat_message("assistant"):
+        message_placeholder = st.empty()
         full_response = ""
-        for chunk in g:
+        stream = AI(st.session_state.messages)
+        for chunk in stream:
             if chunk.choices[0].delta.content:
                 full_response += chunk.choices[0].delta.content
-                result_area.markdown(full_response) # 实时更新屏幕
+                message_placeholder.markdown(full_response + "▌")
+        message_placeholder.markdown(full_response)
+    
+    st.session_state.messages.append({"role": "assistant", "content": full_response})
