@@ -121,43 +121,31 @@ with st.sidebar:
 
     st.divider()
 
-    # 功能 2：作文批改
-    st.subheader("✍️ 作文批改")
-    if st.button("📝 开启作文批改模式"):
-        # 清空当前对话，切换系统提示词
-        st.session_state.messages = [
-            {"role": "system", "content": """
-            你是一位资深的语文/英语作文批改老师。
-            1. 请从【词汇运用】、【语法结构】、【逻辑连贯】、【内容深度】四个维度进行点评。
-            2. 指出文中的亮点和不足。
-            3. 给出修改建议和推荐的优美句式。
-            4. 最后给出一个预估分数（满分100）。
-            """}
-        ]
-        st.session_state.current_topic = "（作文批改模式）"
-        st.session_state.messages.append({"role": "assistant", "content": "请直接发送你的作文内容（中文/英文均可），老师来帮你批改！"})
-        st.rerun()
+    # 功能 2：作文辅导
+    st.subheader("✍️ 作文辅导")
+    # 输入作文题目
+    composition_title = st.text_input("输入作文题目（如：我的假期）")
+    if st.button("📝 开始辅导"):
+        if composition_title:
+            st.session_state.messages = [
+                {"role": "system", "content": """
+                你是一位资深的作文辅导老师。
+                1. 首先引导学生进行头脑风暴，列出写作大纲。
+                2. 教授写作技巧（如：如何开头、如何描写细节）。
+                3. 鼓励学生分段写作，并给出即时反馈。
+                4. 最后给出一篇高质量的范文作为参考。
+                """}
+            ]
+            st.session_state.current_topic = f"作文题目：{composition_title}"
+            # 构造初始引导
+            user_msg = f"老师，我要写一篇关于《{composition_title}》的作文，请教教我怎么写。"
+            st.session_state.messages.append({"role": "user", "content": user_msg})
+            st.session_state.need_first_response = True
+            st.rerun()
 
     st.divider()
 
-    # 功能 3：英语口语陪练
-    st.subheader("🗣️ 英语口语陪练")
-    if st.button("🎙️ 开启口语对话"):
-        st.session_state.messages = [
-            {"role": "system", "content": """
-            You are a friendly English tutor. 
-            1. Converse with the student in simple, clear English.
-            2. Correct their grammar mistakes gently in your reply.
-            3. Keep the conversation going by asking open-ended questions.
-            """}
-        ]
-        st.session_state.current_topic = "（英语口语模式）"
-        st.session_state.messages.append({"role": "assistant", "content": "Hello! I'm your English tutor. What topic would you like to talk about today?"})
-        st.rerun()
-    
-    st.divider()
-
-    # 功能 4：知识点百科
+    # 功能 3：知识点百科
     st.subheader("📖 知识点百科")
     concept = st.text_input("输入想查询的概念（如：牛顿第二定律）")
     if st.button("🔍 查询讲解"):
@@ -195,11 +183,9 @@ div[data-testid="stFileUploader"] label {
 </style>
 """, unsafe_allow_html=True)
 
-st.info("💡 提示：点击下方按钮，直接选择【拍照】或【相机】以上传题目。")
-
 # 1. 只保留上传/系统相机模式
 img_file = st.file_uploader(
-    "📸 点击拍摄题目", 
+    "📸 点击拍摄题目 (或在左侧选择其他功能)", 
     type=['jpg', 'png', 'jpeg'], 
     accept_multiple_files=False,
     key="uploader"
