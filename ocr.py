@@ -9,7 +9,7 @@ def get_img_str(file_path):
 
 def get_ocr_text(uploaded_file):
     a = "sk-vogujjwsiclsbtlaorwvnncwfidlxavtukoxcqlciakmhtkr"
-    b = "deepseek-ai/DeepSeek-OCR"
+    b = "PaddlePaddle/PaddleOCR-VL-1.5"
     
     # 建立连接
     client = OpenAI(
