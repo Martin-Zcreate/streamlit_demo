@@ -8,7 +8,7 @@ from openai import OpenAI
 # ================= 配置区域 =================
 # ⚠️ 请填入你的硅基流动 API Key
 # 注册地址: https://cloud.siliconflow.cn/
-API_KEY = "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" 
+API_KEY = "sk-vogujjwsiclsbtlaorwvnncwfidlxavtukoxcqlciakmhtkr" 
 
 # 模型配置
 OCR_MODEL = "deepseek-ai/DeepSeek-OCR"
