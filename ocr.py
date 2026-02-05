@@ -33,7 +33,7 @@ def get_ocr_text(file_content):
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": "请将这张图片里的所有文字和数学公式提取出来。重要：公式请使用 LaTeX 格式，行内公式用 $ 包裹，独立公式用 $$ 包裹，不要输出多余的Markdown标记。"},
+                        {"type": "text", "text": "请将这张图片里的所有文字和数学公式提取出来。重要：公式请使用 LaTeX 格式，行内公式用 $ 包裹，独立公式用 $$ 包裹，不要输出多余的Markdown标记（如 ```latex 或 ```json 等），只返回纯文本内容。"},
                         {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{d}"}}
                     ]
                 }
@@ -41,7 +41,15 @@ def get_ocr_text(file_content):
             temperature=0.1,
         )
 
-        return e.choices[0].message.content
+        content = e.choices[0].message.content
+        # 后处理：如果返回的内容被 ``` 包裹，去除它
+        if content.startswith("```"):
+            lines = content.split('\n')
+            # 去掉第一行和最后一行
+            if len(lines) >= 2:
+                content = "\n".join(lines[1:-1])
+        
+        return content
 
     except Exception as err:
         st.error(f"OCR出错: {err}")
@@ -70,6 +78,8 @@ if "current_topic" not in st.session_state:
     st.session_state.current_topic = None
 if "last_uploaded_file_id" not in st.session_state:
     st.session_state.last_uploaded_file_id = None
+if "need_first_response" not in st.session_state:
+    st.session_state.need_first_response = False
 
 st.markdown("""
 <style>
@@ -85,7 +95,7 @@ st.info("💡 提示：点击下方按钮，直接选择【拍照】或【相机
 
 # 1. 只保留上传/系统相机模式
 img_file = st.file_uploader(
-    "  点击拍摄题目", 
+    "📸 点击拍摄题目", 
     type=['jpg', 'png', 'jpeg'], 
     accept_multiple_files=False,
     key="uploader"
@@ -118,18 +128,10 @@ if img_file:
                     {"role": "user", "content": f"学生发来了这道题，请讲解：\n{ocr_result}"}
                 ]
                 
-                # 自动触发第一次讲解
-                with st.spinner('老师正在思考...'):
-                    # 占位符用于流式输出
-                    full_response = ""
-                    # 这里我们不直接显示，而是通过 rerun 让下面的聊天循环处理
-                    # 但为了用户体验，首次可以直接调用并存入 history
-                    stream = AI(st.session_state.messages)
-                    for chunk in stream:
-                        if chunk.choices[0].delta.content:
-                            full_response += chunk.choices[0].delta.content
-                    
-                    st.session_state.messages.append({"role": "assistant", "content": full_response})
+                # 标记需要第一次回复
+                st.session_state.need_first_response = True
+                # 强制刷新以显示新状态
+                st.rerun()
 
 # 2. 显示识别到的题目（优化显示）
 if st.session_state.current_topic:
@@ -140,17 +142,30 @@ if st.session_state.current_topic:
 # 3. 聊天界面
 st.subheader("👨‍🏫 老师讲解 & 答疑")
 
-# 显示历史消息 (跳过 system 消息和第一条包含大量 prompt 的 user 消息，只显示核心内容)
+# 显示历史消息
 for msg in st.session_state.messages:
     if msg["role"] == "system":
         continue
-    # 对于第一条 user 消息（包含"学生发来了这道题..."），我们可能不想重复显示，或者简化显示
-    # 这里简单起见，全部显示，或者你可以选择隐藏第一条 user 消息
     if msg["role"] == "user" and "学生发来了这道题" in msg["content"]:
         continue 
         
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
+
+# 处理首次自动回复 (流式)
+if st.session_state.need_first_response:
+    st.session_state.need_first_response = False
+    with st.chat_message("assistant"):
+        message_placeholder = st.empty()
+        full_response = ""
+        stream = AI(st.session_state.messages)
+        for chunk in stream:
+            if chunk.choices[0].delta.content:
+                full_response += chunk.choices[0].delta.content
+                message_placeholder.markdown(full_response + "▌")
+        message_placeholder.markdown(full_response)
+    st.session_state.messages.append({"role": "assistant", "content": full_response})
+    st.rerun()
 
 # 底部输入框
 if prompt := st.chat_input("哪里不懂？可以继续问老师..."):
