@@ -28,8 +28,6 @@ def compress_image(image_bytes, max_size_kb=150):
         if current_size <= max_size_kb * 1024:
             return image_bytes
 
-        st.info(f"图片大小 {current_size/1024:.1f}KB > {max_size_kb}KB，正在压缩...", icon="📉")
-        
         img = Image.open(io.BytesIO(image_bytes))
         
         # 转换为 RGB (兼容 PNG/RGBA)
@@ -173,8 +171,19 @@ if img_file:
         
         # 2. 压缩处理 (如果需要)
         # 这里为了避免"未压缩完就识别"的错觉，我们明确分步
-        # 注意: compress_image 内部有 st.info 提示
-        processed_bytes = compress_image(image_bytes, max_size_kb=150)
+        current_size = len(image_bytes)
+        processed_bytes = image_bytes
+        
+        if current_size > 150 * 1024:
+            status_text = st.empty()
+            status_text.info(f"图片大小 {current_size/1024:.1f}KB > 150KB，正在压缩...", icon="📉")
+            
+            # 执行压缩
+            processed_bytes = compress_image(image_bytes, max_size_kb=150)
+            
+            # 更新状态
+            new_size = len(processed_bytes)
+            status_text.success(f"压缩完成！体积优化: {current_size/1024:.1f}KB -> {new_size/1024:.1f}KB", icon="✅")
         
         # 3. 执行 OCR
         with st.spinner('正在识别题目...'):
