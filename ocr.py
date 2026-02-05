@@ -91,7 +91,88 @@ def AI(messages):
 
 # ================= 网页界面布局 =================
 
-st.set_page_config(page_title="智酷AI作业帮手", page_icon="🤖")
+st.set_page_config(page_title="智酷AI作业帮手", page_icon="🤖", layout="wide")
+
+# ================= 侧边栏：功能区 =================
+with st.sidebar:
+    st.title("🛠️ 实用工具箱")
+    
+    st.divider()
+    
+    # 功能 1：错题本导出
+    st.subheader("📚 错题本")
+    if st.button("📥 导出当前对话为 Markdown"):
+        if st.session_state.messages:
+            # 生成 markdown 内容
+            md_content = f"# 错题记录 - {st.session_state.current_topic[:20]}...\n\n"
+            md_content += f"## 📝 题目\n{st.session_state.current_topic}\n\n"
+            md_content += "## 💡 讲解过程\n"
+            for msg in st.session_state.messages:
+                if msg["role"] == "assistant":
+                    md_content += f"**老师**: {msg['content']}\n\n"
+                elif msg["role"] == "user" and "学生发来了这道题" not in msg['content']:
+                    md_content += f"**学生**: {msg['content']}\n\n"
+            
+            b64_md = base64.b64encode(md_content.encode()).decode()
+            href = f'<a href="data:file/markdown;base64,{b64_md}" download="错题本.md">点击下载错题记录</a>'
+            st.markdown(href, unsafe_allow_html=True)
+        else:
+            st.warning("暂无对话内容可导出")
+
+    st.divider()
+
+    # 功能 2：作文批改
+    st.subheader("✍️ 作文批改")
+    if st.button("📝 开启作文批改模式"):
+        # 清空当前对话，切换系统提示词
+        st.session_state.messages = [
+            {"role": "system", "content": """
+            你是一位资深的语文/英语作文批改老师。
+            1. 请从【词汇运用】、【语法结构】、【逻辑连贯】、【内容深度】四个维度进行点评。
+            2. 指出文中的亮点和不足。
+            3. 给出修改建议和推荐的优美句式。
+            4. 最后给出一个预估分数（满分100）。
+            """}
+        ]
+        st.session_state.current_topic = "（作文批改模式）"
+        st.session_state.messages.append({"role": "assistant", "content": "请直接发送你的作文内容（中文/英文均可），老师来帮你批改！"})
+        st.rerun()
+
+    st.divider()
+
+    # 功能 3：英语口语陪练
+    st.subheader("🗣️ 英语口语陪练")
+    if st.button("🎙️ 开启口语对话"):
+        st.session_state.messages = [
+            {"role": "system", "content": """
+            You are a friendly English tutor. 
+            1. Converse with the student in simple, clear English.
+            2. Correct their grammar mistakes gently in your reply.
+            3. Keep the conversation going by asking open-ended questions.
+            """}
+        ]
+        st.session_state.current_topic = "（英语口语模式）"
+        st.session_state.messages.append({"role": "assistant", "content": "Hello! I'm your English tutor. What topic would you like to talk about today?"})
+        st.rerun()
+    
+    st.divider()
+
+    # 功能 4：知识点百科
+    st.subheader("📖 知识点百科")
+    concept = st.text_input("输入想查询的概念（如：牛顿第二定律）")
+    if st.button("🔍 查询讲解"):
+        if concept:
+            st.session_state.messages = [
+                {"role": "system", "content": "你是一位博学的百科老师。请用通俗易懂的语言解释概念，并举出生活中的例子。"}
+            ]
+            st.session_state.current_topic = f"查询概念：{concept}"
+            # 构造用户提问
+            user_msg = f"请详细讲解一下【{concept}】这个知识点。"
+            st.session_state.messages.append({"role": "user", "content": user_msg})
+            st.session_state.need_first_response = True
+            st.rerun()
+
+# ================= 主界面 =================
 st.title("🤖智酷AI作业帮手")
 
 # 初始化 Session State
