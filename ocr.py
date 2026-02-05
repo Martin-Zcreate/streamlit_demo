@@ -2,122 +2,100 @@ import streamlit as st
 import base64
 import re
 import io
+import json
 from PIL import Image, ImageOps
 from openai import OpenAI
 
 # ================= 配置区域 =================
-# ⚠️ 请填入你的硅基流动 API Key
-# 注册地址: https://cloud.siliconflow.cn/
+# ⚠️ 填入你的 Key
 API_KEY = "sk-vogujjwsiclsbtlaorwvnncwfidlxavtukoxcqlciakmhtkr" 
-
-# 模型配置
 OCR_MODEL = "deepseek-ai/DeepSeek-OCR"
-CHAT_MODEL = "deepseek-ai/DeepSeek-V3" # 或者 deepseek-ai/DeepSeek-R1
+CHAT_MODEL = "deepseek-ai/DeepSeek-V3"
 
-# ================= 工具函数 =================
+# ================= 核心工具 =================
 
 def clean_latex(text):
     """
-    清洗 LaTeX 格式以便 Streamlit 正确渲染
+    清洗数据：处理 LaTeX 符号，同时防止模型返回 JSON 格式导致满屏大括号
     """
     if not text:
         return ""
-    # 替换块级公式 \[ ... \] -> $$ ... $$
+
+    # 1. 🔍 防错：如果模型返回了 JSON 格式 (例如 {"content": "..."})，尝试提取内部文本
+    text = text.strip()
+    if text.startswith("{") and text.endswith("}"):
+        try:
+            data = json.loads(text)
+            # 尝试找常见的字段名
+            if "content" in data: text = data["content"]
+            elif "text" in data: text = data["text"]
+        except:
+            pass # 解析失败就算了，按原样处理
+
+    # 2. 🧹 移除 Markdown 代码块包裹 (```json 或 ```latex)
+    text = re.sub(r'^```\w*\n', '', text) # 去头
+    text = re.sub(r'\n```$', '', text)    # 去尾
+
+    # 3. 📐 修正公式格式
     text = re.sub(r'\\\[(.*?)\\\]', r'$$\1$$', text, flags=re.DOTALL)
-    # 替换行内公式 \( ... \) -> $ ... $
     text = re.sub(r'\\\((.*?)\\\)', r'$\1$', text, flags=re.DOTALL)
-    # 移除 Markdown 代码块标记，防止公式被包裹在代码块里不渲染
-    text = re.sub(r'```latex', '', text)
-    text = re.sub(r'```', '', text)
+    
     return text
 
 def process_image(image_bytes, max_mb=4):
-    """
-    图片预处理终极版：
-    1. 修正 EXIF 旋转 (手机拍照必做)
-    2. 修复 PNG 透明背景变黑 (转白底)
-    3. 智能压缩：仅当图片 > 4MB 时才压缩，最大程度保留细节
-    """
+    """图片预处理：修正旋转 + 智能压缩"""
     try:
         img = Image.open(io.BytesIO(image_bytes))
+        img = ImageOps.exif_transpose(img) # 修正手机拍照旋转
         
-        # 1. 修正旋转 (手机竖拍照片常带旋转角)
-        img = ImageOps.exif_transpose(img)
-        
-        # 2. 处理颜色模式 (RGBA转RGB，透明变白)
-        if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
+        # 修复透明底变黑
+        if img.mode != 'RGB':
             bg = Image.new('RGB', img.size, (255, 255, 255))
-            if img.mode == 'P':
+            if 'A' in img.mode or 'transparency' in img.info:
                 img = img.convert('RGBA')
-            bg.paste(img, mask=img.split()[-1]) # 使用 alpha 通道做掩码
-            img = bg
-        elif img.mode != 'RGB':
-            img = img.convert('RGB')
+                bg.paste(img, mask=img.split()[-1])
+                img = bg
+            else:
+                img = img.convert('RGB')
 
-        # 3. 检查大小
+        # 压缩逻辑
         buf = io.BytesIO()
-        img.save(buf, format="JPEG", quality=95) # 默认高质量
-        size_bytes = len(buf.getvalue())
-        limit_bytes = max_mb * 1024 * 1024
+        img.save(buf, format="JPEG", quality=95)
         
-        # 如果小于限制，直接返回
-        if size_bytes <= limit_bytes:
-            return buf.getvalue()
-
-        # 4. 超出限制则循环压缩
-        quality = 90
-        scale = 0.9
-        w, h = img.size
-        
-        while size_bytes > limit_bytes:
-            buf = io.BytesIO()
-            nw, nh = int(w * scale), int(h * scale)
-            resized = img.resize((nw, nh), Image.Resampling.LANCZOS)
-            resized.save(buf, format="JPEG", quality=quality)
-            
-            size_bytes = len(buf.getvalue())
-            
-            scale *= 0.8
-            if scale < 0.3: break 
+        # 只有在图片真的很大 (>4MB) 时才压缩
+        if len(buf.getvalue()) > max_mb * 1024 * 1024:
+            img.save(buf, format="JPEG", quality=85) # 稍微降点质量即可
             
         return buf.getvalue()
-
     except Exception as e:
-        st.error(f"图片处理异常: {e}")
+        st.error(f"图片处理出错: {e}")
         return image_bytes
 
 def get_ocr_text(image_bytes):
-    """
-    调用 OCR，参数严格对齐 Playground 截图
-    """
+    """调用 OCR，代码结构已拆解，防止括号报错"""
     client = OpenAI(api_key=API_KEY, base_url="https://api.siliconflow.cn/v1")
 
     try:
-        b64_img = base64.b64encode(image_bytes).decode('utf-8')
+        # 1. 准备 Base64 字符串
+        b64_str = base64.b64encode(image_bytes).decode('utf-8')
         
+        # 2. 准备消息内容 (拆开写，不套娃)
+        text_part = {"type": "text", "text": "提取图中所有文字和LaTeX公式。直接输出内容，不要包含JSON格式或Markdown代码块。"}
+        image_part = {
+            "type": "image_url",
+            "image_url": {
+                "url": f"data:image/jpeg;base64,{b64_str}",
+                "detail": "high" # 👈 关键：强制高清
+            }
+        }
+        
+        # 3. 发送请求
         response = client.chat.completions.create(
             model=OCR_MODEL,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": "请提取图中所有内容，数学公式请务必使用 LaTeX 格式（行内用 $，独占行用 $$）。不要包含原本没有的解释文字。"},
-                        {
-                            "type": "image_url", 
-                            "image_url": {
-                                "url": f"data:image/jpeg;base64,{b64_img}",
-                                "detail": "high" # ⚡️关键：强制高清模式
-                            }
-                        }
-                    ]
-                }
-            ],
-            # === 根据截图调整的参数 ===
-            temperature=0.0,       # 截图设置：0.0
-            top_p=0.7,             # 截图设置：0.7
-            max_tokens=4096,       # 截图设置：4096
-            frequency_penalty=0.0  # 截图设置：0.0
-            # ========================
+            messages=[{"role": "user", "content": [text_part, image_part]}],
+            temperature=0.0,
+            top_p=0.7,
+            max_tokens=4096
         )
         
         return clean_latex(response.choices[0].message.content)
@@ -126,138 +104,104 @@ def get_ocr_text(image_bytes):
         st.error(f"OCR 请求失败: {e}")
         return None
 
-def ai_stream(messages):
-    """
-    调用对话模型 (DeepSeek-V3/R1)
-    """
+def ai_stream(history):
+    """调用对话模型"""
     client = OpenAI(api_key=API_KEY, base_url="https://api.siliconflow.cn/v1")
     
-    # 清理消息历史，确保只发送文本给对话模型（避免格式错误）
-    text_msgs = []
-    for m in messages:
-        # 只取文本内容
-        text_msgs.append({"role": m["role"], "content": m["content"]})
+    # 只发送文本给对话模型，避免发图片报错
+    clean_history = []
+    for msg in history:
+        clean_history.append({"role": msg["role"], "content": str(msg["content"])})
 
-    response = client.chat.completions.create(
+    return client.chat.completions.create(
         model=CHAT_MODEL,
-        messages=text_msgs,
+        messages=clean_history,
         stream=True,
-        temperature=0.7 # 讲题可以稍微灵活一点
+        temperature=0.7
     )
-    return response
 
-# ================= 页面主逻辑 =================
+# ================= 网页主程序 =================
 
-st.set_page_config(page_title="AI 题目讲解", page_icon="🎓")
+st.set_page_config(page_title="AI 题目讲解", layout="centered")
 st.title("🎓 AI 题目讲解助手")
-st.caption("基于 DeepSeek-OCR & DeepSeek-V3 | 硅基流动强力驱动")
 
-# 状态初始化
 if "history" not in st.session_state:
     st.session_state.history = []
-if "last_file" not in st.session_state:
-    st.session_state.last_file = None
-if "ocr_content" not in st.session_state:
-    st.session_state.ocr_content = None
+if "last_file_id" not in st.session_state:
+    st.session_state.last_file_id = None
 
-# 系统提示词
-SYSTEM_PROMPT = """
-你是一位耐心、专业的老师。
-1. 拿到题目内容后，先梳理思路，再逐步讲解。
-2. 遇到数学公式，必须使用 LaTeX 格式：行内用 $...$，独立公式用 $$...$$。
-3. 讲解要清晰易懂，适合学生阅读。
-"""
-
-# 上传组件
-uploaded_file = st.file_uploader("📸 拍照或上传图片", type=['jpg', 'png', 'jpeg'])
+uploaded_file = st.file_uploader("📸 上传题目图片", type=['jpg', 'png', 'jpeg'])
 
 if uploaded_file:
     file_id = f"{uploaded_file.name}-{uploaded_file.size}"
     
-    # 发现新图片，开始处理
-    if st.session_state.last_file != file_id:
-        st.session_state.last_file = file_id
-        st.session_state.history = [] # 清空旧聊天
-        st.session_state.ocr_content = None
+    # 新图片处理流程
+    if st.session_state.last_file_id != file_id:
+        st.session_state.last_file_id = file_id
+        st.session_state.history = []
         
-        raw_bytes = uploaded_file.getvalue()
-        
-        with st.status("🔍 正在分析图片...", expanded=True) as status:
-            st.write("🛠️ 图片预处理 (旋转修正/去噪/尺寸优化)...")
-            processed_bytes = process_image(raw_bytes)
+        with st.status("🚀 正在识别题目...", expanded=True) as status:
+            # 1. 处理图片
+            img_bytes = process_image(uploaded_file.getvalue())
+            # 2. 识别文字
+            ocr_result = get_ocr_text(img_bytes)
             
-            st.write("🚀 正在识别文字与公式 (DeepSeek-OCR)...")
-            ocr_text = get_ocr_text(processed_bytes)
-            
-            if ocr_text:
-                st.session_state.ocr_content = ocr_text
-                status.update(label="识别成功", state="complete", expanded=False)
+            if ocr_result:
+                status.update(label="识别成功！", state="complete", expanded=False)
                 
-                # 构造初始对话
-                init_msg = f"这是识别到的题目内容：\n\n{ocr_text}\n\n请老师帮我讲解这道题。"
-                # 存入 system prompt 和 第一条 user msg
+                # 初始化对话
+                sys_msg = "你是一位老师。请解析题目思路，公式使用LaTeX格式($...$ 或 $$...$$)。"
+                user_msg = f"题目内容如下：\n{ocr_result}\n\n请讲解。"
+                
                 st.session_state.history = [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": init_msg}
+                    {"role": "system", "content": sys_msg},
+                    {"role": "user", "content": user_msg}
                 ]
                 
-                # === 自动触发第一次讲解 ===
+                # 自动触发讲解
                 with st.chat_message("assistant"):
                     ph = st.empty()
-                    full_res = ""
+                    full_text = ""
                     try:
-                        stream = ai_stream(st.session_state.history)
-                        for chunk in stream:
-                            txt = chunk.choices[0].delta.content
-                            if txt:
-                                full_res += txt
-                                ph.markdown(clean_latex(full_res) + "▌")
-                        ph.markdown(clean_latex(full_res))
-                        st.session_state.history.append({"role": "assistant", "content": full_res})
+                        for chunk in ai_stream(st.session_state.history):
+                            if chunk.choices[0].delta.content:
+                                full_text += chunk.choices[0].delta.content
+                                ph.markdown(clean_latex(full_text) + "▌")
+                        ph.markdown(clean_latex(full_text))
+                        st.session_state.history.append({"role": "assistant", "content": full_text})
                     except Exception as e:
-                        st.error(f"生成讲解出错: {e}")
+                        st.error(f"讲解出错: {e}")
             else:
                 status.update(label="识别失败", state="error")
-                st.error("无法提取内容，请检查图片是否清晰。")
 
-# === 界面显示 ===
+# 显示历史对话
+for msg in st.session_state.history:
+    if msg["role"] != "system":
+        # 这里的判断是为了不重复显示第一条很长的题目内容，保持界面清爽
+        # 如果你想看题目，就把下面这两行删掉
+        if "题目内容如下" in str(msg["content"]) and msg["role"] == "user":
+            with st.expander("查看识别到的题目"):
+                st.markdown(clean_latex(msg["content"]))
+            continue
+            
+        with st.chat_message(msg["role"]):
+            st.markdown(clean_latex(msg["content"]))
 
-# 1. 显示识别的原文 (可折叠)
-if st.session_state.ocr_content:
-    with st.expander("查看原始 OCR 识别结果", expanded=False):
-        st.markdown(st.session_state.ocr_content)
-
-# 2. 聊天区域
-st.divider()
-
-# 渲染历史记录 (跳过 system 和 第一条 user 消息，避免重复显示题目)
-for i, msg in enumerate(st.session_state.history):
-    if msg["role"] == "system": continue
-    # 如果想把第一条包含题目内容的 user 消息隐藏，可以取消下面这行的注释
-    # if i == 1: continue 
-    
-    with st.chat_message(msg["role"]):
-        st.markdown(clean_latex(msg["content"]))
-
-# 3. 追问输入框
-if prompt := st.chat_input("还有哪里不懂？"):
-    # 显示用户输入
+# 输入框
+if query := st.chat_input("哪里不懂？"):
     with st.chat_message("user"):
-        st.markdown(prompt)
-    st.session_state.history.append({"role": "user", "content": prompt})
+        st.markdown(query)
+    st.session_state.history.append({"role": "user", "content": query})
     
-    # AI 回复
     with st.chat_message("assistant"):
         ph = st.empty()
-        full_res = ""
+        full_text = ""
         try:
-            stream = ai_stream(st.session_state.history)
-            for chunk in stream:
-                txt = chunk.choices[0].delta.content
-                if txt:
-                    full_res += txt
-                    ph.markdown(clean_latex(full_res) + "▌")
-            ph.markdown(clean_latex(full_res))
-            st.session_state.history.append({"role": "assistant", "content": full_res})
+            for chunk in ai_stream(st.session_state.history):
+                if chunk.choices[0].delta.content:
+                    full_text += chunk.choices[0].delta.content
+                    ph.markdown(clean_latex(full_text) + "▌")
+            ph.markdown(clean_latex(full_text))
+            st.session_state.history.append({"role": "assistant", "content": full_text})
         except Exception as e:
-            st.error(f"回复出错: {e}")
+            st.error(f"出错: {e}")
