@@ -33,7 +33,7 @@ def get_ocr_text(file_content):
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": "请将这张图片里的所有文字和数学公式提取出来。重要：公式请使用 LaTeX 格式，行内公式用 $ 包裹，独立公式用 $$ 包裹，不要输出多余的Markdown标记（如 ```latex 或 ```json 等），只返回纯文本内容。"},
+                        {"type": "text", "text": "请提取图片中的文字和数学公式。重要要求：\n1. 所有数学公式（包括简单的变量如x, y）必须包含在 $ 符号中（行内公式）或 $$ 符号中（独立公式）。\n2. 不要输出任何 JSON 格式或 Markdown 代码块（如 ```json）。\n3. 只返回纯文本内容。"},
                         {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{d}"}}
                     ]
                 }
@@ -42,12 +42,35 @@ def get_ocr_text(file_content):
         )
 
         content = e.choices[0].message.content
-        # 后处理：如果返回的内容被 ``` 包裹，去除它
+        
+        # 增强的后处理逻辑
+        content = content.strip()
+        
+        # 1. 去除可能存在的 markdown 代码块包裹
         if content.startswith("```"):
             lines = content.split('\n')
-            # 去掉第一行和最后一行
+            # 找到第一个换行符，通常第一行是 ```latex 或 ```json
             if len(lines) >= 2:
+                # 重新组合，去掉第一行和最后一行
                 content = "\n".join(lines[1:-1])
+        
+        # 2. 专门处理常见的 JSON 误判 (识别为 "}" 或 "{" ... "}")
+        if content.endswith("}"):
+            # 尝试查找对应的 "{"
+            start_index = content.find("{")
+            if start_index != -1:
+                # 可能是 JSON，尝试提取 "content" 或 "text" 字段
+                import json
+                try:
+                    json_data = json.loads(content[start_index:])
+                    if isinstance(json_data, dict):
+                        # 优先取 content, text, result 等字段
+                        for key in ["content", "text", "result", "ocr_text"]:
+                            if key in json_data:
+                                content = json_data[key]
+                                break
+                except:
+                    pass # 解析失败就当做普通文本
         
         return content
 
