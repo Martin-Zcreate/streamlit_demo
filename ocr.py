@@ -6,38 +6,58 @@ import json
 from PIL import Image, ImageOps
 from openai import OpenAI
 
-# ================= 配置区域 =================
-# ⚠️ 填入你的 Key
-API_KEY = "sk-vogujjwsiclsbtlaorwvnncwfidlxavtukoxcqlciakmhtkr" 
-OCR_MODEL = "deepseek-ai/DeepSeek-OCR"
-CHAT_MODEL = "deepseek-ai/DeepSeek-V3"
+# ================= 恢复你的 API KEY =================
+# 硅基流动 Key (用于 OCR) - 对应你提供的第一个 Key
+OCR_API_KEY = "sk-vogujjwsiclsbtlaorwvnncwfidlxavtukoxcqlciakmhtkr"
+# DeepSeek Key (用于对话) - 对应你提供的第二个 Key
+CHAT_API_KEY = "sk-af6ba48dbd8a4d1fb0d036551b9bbdc3"
 
-# ================= 核心工具 =================
+# ================= 核心清洗工具 (解决花括号问题) =================
 
-def clean_latex(text):
+def clean_text(text):
     """
-    清洗数据：处理 LaTeX 符号，同时防止模型返回 JSON 格式导致满屏大括号
+    终极清洗函数：
+    1. 去除 JSON 花括号包裹
+    2. 去除 Markdown 代码块
+    3. 修复 LaTeX 格式
     """
     if not text:
         return ""
 
-    # 1. 🔍 防错：如果模型返回了 JSON 格式 (例如 {"content": "..."})，尝试提取内部文本
     text = text.strip()
-    if text.startswith("{") and text.endswith("}"):
+
+    # --- 1. 暴力去除 JSON 外壳 ---
+    # 如果内容以 ```json 开头，或者以 { 开头，尝试解析
+    if text.startswith("```") or text.startswith("{"):
+        # 移除 markdown 标记
+        text = re.sub(r'^```(json)?', '', text, flags=re.MULTILINE)
+        text = re.sub(r'```$', '', text, flags=re.MULTILINE)
+        text = text.strip()
+        
+        # 尝试作为 JSON 解析
         try:
             data = json.loads(text)
-            # 尝试找常见的字段名
-            if "content" in data: text = data["content"]
-            elif "text" in data: text = data["text"]
+            # 如果解析成功，优先取 'content' 或 'text' 字段
+            if isinstance(data, dict):
+                if "content" in data:
+                    text = data["content"]
+                elif "text" in data:
+                    text = data["text"]
+                # 如果是其他 key，比如 {"result":...}, 只要是字典且只有一个大 value，就取那个
+                elif len(data) == 1:
+                    text = list(data.values())[0]
         except:
-            pass # 解析失败就算了，按原样处理
+            # 如果解析失败（比如 JSON 不完整），尝试用正则提取 content":"..." 后面的内容
+            match = re.search(r'"content"\s*:\s*"(.*?)"', text, re.DOTALL)
+            if match:
+                text = match.group(1)
+                # 处理转义字符
+                text = text.replace('\\n', '\n').replace('\\"', '"')
 
-    # 2. 🧹 移除 Markdown 代码块包裹 (```json 或 ```latex)
-    text = re.sub(r'^```\w*\n', '', text) # 去头
-    text = re.sub(r'\n```$', '', text)    # 去尾
-
-    # 3. 📐 修正公式格式
+    # --- 2. 修复 LaTeX 格式 ---
+    # 将 \[ \] 替换为 $$
     text = re.sub(r'\\\[(.*?)\\\]', r'$$\1$$', text, flags=re.DOTALL)
+    # 将 \( \) 替换为 $
     text = re.sub(r'\\\((.*?)\\\)', r'$\1$', text, flags=re.DOTALL)
     
     return text
@@ -64,7 +84,7 @@ def process_image(image_bytes, max_mb=4):
         
         # 只有在图片真的很大 (>4MB) 时才压缩
         if len(buf.getvalue()) > max_mb * 1024 * 1024:
-            img.save(buf, format="JPEG", quality=85) # 稍微降点质量即可
+            img.save(buf, format="JPEG", quality=85) 
             
         return buf.getvalue()
     except Exception as e:
@@ -72,33 +92,39 @@ def process_image(image_bytes, max_mb=4):
         return image_bytes
 
 def get_ocr_text(image_bytes):
-    """调用 OCR，代码结构已拆解，防止括号报错"""
-    client = OpenAI(api_key=API_KEY, base_url="https://api.siliconflow.cn/v1")
+    """调用 OCR，加入 JSON 禁用提示"""
+    # 使用硅基流动 Key
+    client = OpenAI(api_key=OCR_API_KEY, base_url="https://api.siliconflow.cn/v1")
 
     try:
-        # 1. 准备 Base64 字符串
         b64_str = base64.b64encode(image_bytes).decode('utf-8')
         
-        # 2. 准备消息内容 (拆开写，不套娃)
-        text_part = {"type": "text", "text": "提取图中所有文字和LaTeX公式。直接输出内容，不要包含JSON格式或Markdown代码块。"}
-        image_part = {
-            "type": "image_url",
-            "image_url": {
-                "url": f"data:image/jpeg;base64,{b64_str}",
-                "detail": "high" # 👈 关键：强制高清
-            }
-        }
+        # 提示词：明确要求不要输出 JSON
+        prompt_text = "提取图中所有文字和公式。请直接输出纯文本内容，不要输出 JSON 格式，不要使用代码块包裹。"
         
-        # 3. 发送请求
         response = client.chat.completions.create(
-            model=OCR_MODEL,
-            messages=[{"role": "user", "content": [text_part, image_part]}],
-            temperature=0.0,
-            top_p=0.7,
+            model="deepseek-ai/DeepSeek-OCR",
+            messages=[
+                {
+                    "role": "user", 
+                    "content": [
+                        {"type": "text", "text": prompt_text},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{b64_str}",
+                                "detail": "high" # 强制高清
+                            }
+                        }
+                    ]
+                }
+            ],
+            temperature=0.0, # 严谨模式
             max_tokens=4096
         )
         
-        return clean_latex(response.choices[0].message.content)
+        raw_content = response.choices[0].message.content
+        return clean_text(raw_content)
 
     except Exception as e:
         st.error(f"OCR 请求失败: {e}")
@@ -106,15 +132,16 @@ def get_ocr_text(image_bytes):
 
 def ai_stream(history):
     """调用对话模型"""
-    client = OpenAI(api_key=API_KEY, base_url="https://api.siliconflow.cn/v1")
+    # 使用 DeepSeek Key
+    client = OpenAI(api_key=CHAT_API_KEY, base_url="https://api.deepseek.com")
     
-    # 只发送文本给对话模型，避免发图片报错
+    # 清洗历史消息，只保留文本
     clean_history = []
     for msg in history:
         clean_history.append({"role": msg["role"], "content": str(msg["content"])})
 
     return client.chat.completions.create(
-        model=CHAT_MODEL,
+        model="deepseek-chat",
         messages=clean_history,
         stream=True,
         temperature=0.7
@@ -166,8 +193,8 @@ if uploaded_file:
                         for chunk in ai_stream(st.session_state.history):
                             if chunk.choices[0].delta.content:
                                 full_text += chunk.choices[0].delta.content
-                                ph.markdown(clean_latex(full_text) + "▌")
-                        ph.markdown(clean_latex(full_text))
+                                ph.markdown(clean_text(full_text) + "▌")
+                        ph.markdown(clean_text(full_text))
                         st.session_state.history.append({"role": "assistant", "content": full_text})
                     except Exception as e:
                         st.error(f"讲解出错: {e}")
@@ -177,15 +204,14 @@ if uploaded_file:
 # 显示历史对话
 for msg in st.session_state.history:
     if msg["role"] != "system":
-        # 这里的判断是为了不重复显示第一条很长的题目内容，保持界面清爽
-        # 如果你想看题目，就把下面这两行删掉
+        # 如果是第一条题目内容，折叠显示
         if "题目内容如下" in str(msg["content"]) and msg["role"] == "user":
             with st.expander("查看识别到的题目"):
-                st.markdown(clean_latex(msg["content"]))
+                st.markdown(clean_text(msg["content"]))
             continue
             
         with st.chat_message(msg["role"]):
-            st.markdown(clean_latex(msg["content"]))
+            st.markdown(clean_text(msg["content"]))
 
 # 输入框
 if query := st.chat_input("哪里不懂？"):
@@ -200,8 +226,8 @@ if query := st.chat_input("哪里不懂？"):
             for chunk in ai_stream(st.session_state.history):
                 if chunk.choices[0].delta.content:
                     full_text += chunk.choices[0].delta.content
-                    ph.markdown(clean_latex(full_text) + "▌")
-            ph.markdown(clean_latex(full_text))
+                    ph.markdown(clean_text(full_text) + "▌")
+            ph.markdown(clean_text(full_text))
             st.session_state.history.append({"role": "assistant", "content": full_text})
         except Exception as e:
             st.error(f"出错: {e}")
