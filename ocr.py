@@ -28,7 +28,7 @@ def compress_image(image_bytes, max_size_kb=150):
         if current_size <= max_size_kb * 1024:
             return image_bytes
 
-        st.toast(f"图片大小 {current_size/1024:.1f}KB > {max_size_kb}KB，正在压缩...", icon="📉")
+        st.info(f"图片大小 {current_size/1024:.1f}KB > {max_size_kb}KB，正在压缩...", icon="📉")
         
         img = Image.open(io.BytesIO(image_bytes))
         
@@ -76,7 +76,7 @@ def get_img_str(file_path):
     with open(file_path, "rb") as f:
         return base64.b64encode(f.read()).decode('utf-8')
 
-def get_ocr_text(uploaded_file):
+def get_ocr_text(image_bytes):
     a = "sk-vogujjwsiclsbtlaorwvnncwfidlxavtukoxcqlciakmhtkr"
     b = "deepseek-ai/DeepSeek-OCR" 
 
@@ -86,17 +86,9 @@ def get_ocr_text(uploaded_file):
         base_url="https://api.siliconflow.cn/v1"
     )
 
-    # 辅助函数：把图片转成字符串
-    
-
     try:
         # d: 图片的 Base64 编码
-        raw_bytes = uploaded_file.getvalue()
-        
-        # 压缩处理 (如果 > 150KB)
-        processed_bytes = compress_image(raw_bytes, max_size_kb=150)
-        
-        d = base64.b64encode(processed_bytes).decode('utf-8')
+        d = base64.b64encode(image_bytes).decode('utf-8')
         
         print(f"正在发送请求给模型: {b} ...")
 
@@ -176,9 +168,17 @@ if img_file:
         st.session_state.messages = []
         st.session_state.ocr_result = None
         
-        # 执行 OCR
+        # 1. 获取图片数据
+        image_bytes = img_file.getvalue()
+        
+        # 2. 压缩处理 (如果需要)
+        # 这里为了避免"未压缩完就识别"的错觉，我们明确分步
+        # 注意: compress_image 内部有 st.info 提示
+        processed_bytes = compress_image(image_bytes, max_size_kb=150)
+        
+        # 3. 执行 OCR
         with st.spinner('正在识别题目...'):
-            st.session_state.ocr_result = get_ocr_text(img_file)
+            st.session_state.ocr_result = get_ocr_text(processed_bytes)
 
     # 如果有识别结果
     if st.session_state.ocr_result:
