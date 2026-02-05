@@ -1,6 +1,8 @@
 import streamlit as st
 import base64
 import re
+import io
+from PIL import Image
 from openai import OpenAI
 
 def clean_latex(text):
@@ -16,6 +18,59 @@ def clean_latex(text):
     # 替换行内公式 \( ... \) 为 $ ... $
     text = re.sub(r'\\\((.*?)\\\)', r'$\1$', text, flags=re.DOTALL)
     return text
+
+def compress_image(image_bytes, max_size_kb=150):
+    """
+    如果图片超过 max_size_kb，则进行压缩
+    """
+    try:
+        current_size = len(image_bytes)
+        if current_size <= max_size_kb * 1024:
+            return image_bytes
+
+        st.toast(f"图片大小 {current_size/1024:.1f}KB > {max_size_kb}KB，正在压缩...", icon="📉")
+        
+        img = Image.open(io.BytesIO(image_bytes))
+        
+        # 转换为 RGB (兼容 PNG/RGBA)
+        if img.mode in ("RGBA", "P"):
+            img = img.convert("RGB")
+            
+        # 循环压缩直到满足大小
+        quality = 90
+        width, height = img.size
+        scale = 1.0
+        
+        while True:
+            output_buffer = io.BytesIO()
+            # 调整尺寸
+            if scale < 1.0:
+                new_width = int(width * scale)
+                new_height = int(height * scale)
+                resized_img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                resized_img.save(output_buffer, format="JPEG", quality=quality)
+            else:
+                img.save(output_buffer, format="JPEG", quality=quality)
+            
+            compressed_bytes = output_buffer.getvalue()
+            
+            if len(compressed_bytes) <= max_size_kb * 1024:
+                return compressed_bytes
+            
+            # 如果还是太大，降低质量或尺寸
+            if quality > 60:
+                quality -= 10
+            else:
+                # 质量已经很低了，开始缩尺寸
+                scale *= 0.8
+                
+            # 避免死循环
+            if scale < 0.1:
+                return compressed_bytes
+
+    except Exception as e:
+        st.warning(f"图片压缩异常: {e}")
+        return image_bytes
 
 def get_img_str(file_path):
     with open(file_path, "rb") as f:
@@ -36,8 +91,12 @@ def get_ocr_text(uploaded_file):
 
     try:
         # d: 图片的 Base64 编码
-        c = uploaded_file.getvalue()
-        d = base64.b64encode(c).decode('utf-8')
+        raw_bytes = uploaded_file.getvalue()
+        
+        # 压缩处理 (如果 > 150KB)
+        processed_bytes = compress_image(raw_bytes, max_size_kb=150)
+        
+        d = base64.b64encode(processed_bytes).decode('utf-8')
         
         print(f"正在发送请求给模型: {b} ...")
 
