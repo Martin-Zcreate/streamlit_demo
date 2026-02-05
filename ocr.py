@@ -30,12 +30,11 @@ def compress_image(image_bytes, max_size_kb=150):
 
         img = Image.open(io.BytesIO(image_bytes))
         
-        # 转换为 RGB (兼容 PNG/RGBA)
-        if img.mode in ("RGBA", "P"):
-            img = img.convert("RGB")
+        # 1. 转换为灰度图 (减少颜色通道，大幅降低体积)
+        img = img.convert('L')
             
         # 循环压缩直到满足大小
-        quality = 90
+        quality = 85 # 初始质量降低
         width, height = img.size
         scale = 1.0
         
