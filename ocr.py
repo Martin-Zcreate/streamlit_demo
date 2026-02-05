@@ -11,19 +11,20 @@ def get_ocr_text(uploaded_file):
     a = "sk-vogujjwsiclsbtlaorwvnncwfidlxavtukoxcqlciakmhtkr"
     b = "deepseek-ai/DeepSeek-OCR"
     
-    # 建立连接 (已修复URL格式)
+    # 建立连接
     client = OpenAI(
         api_key=a,
         base_url="https://api.siliconflow.cn/v1"
     )
 
     try:
-        # 读取图片并转为 Base64
+        # d: 图片的 Base64 编码
         c = uploaded_file.getvalue()
         d = base64.b64encode(c).decode('utf-8')
         
         print(f"正在发送请求给模型: {b} ...")
 
+        # e: 发送请求
         e = client.chat.completions.create(
             model=b,
             messages=[
@@ -37,14 +38,15 @@ def get_ocr_text(uploaded_file):
             ],
             temperature=0.1,
         )
+
         return e.choices[0].message.content
 
     except Exception as err:
         st.error(f"OCR出错: {err}")
         return None
 
+
 def AI(question_text):
-    # 建立连接 (已修复URL格式)
     client = OpenAI(api_key="sk-af6ba48dbd8a4d1fb0d036551b9bbdc3",
                     base_url="https://api.deepseek.com")
     
@@ -68,38 +70,72 @@ def AI(question_text):
 
 # ================= 网页界面布局 =================
 
+st.set_page_config(page_title="智酷AI作业帮手", page_icon="🤖")
 st.title("🤖智酷AI作业帮手")
 
-# 核心修改：优先展示摄像头输入
-method = st.radio("选择输入方式", ["📸 拍照", "📤 上传图片"], horizontal=True)
+# 错误处理提示
+if "webrtc_failed" not in st.session_state:
+    st.session_state.webrtc_failed = False
+
+st.info("💡 提示：为保证最佳识别效果，请优先使用【系统相机】拍摄清晰照片。")
+
+# 选项卡布局
+tab1, tab2 = st.tabs(["📱 系统相机 (推荐)", "  网页相机 (备用)"])
 
 img_file = None
 
-if method == "📸 拍照":
-    # camera_input 会在移动端浏览器请求摄像头权限并直接显示画面
-    img_file = st.camera_input("点击下方按钮拍照")
-else:
-    img_file = st.file_uploader(
-        "选择作业图片", 
+with tab1:
+    st.markdown("### 📷 调用手机原生相机")
+    st.markdown("""
+    <style>
+    /* 尝试通过 CSS 引导用户 */
+    div[data-testid="stFileUploader"] label {
+        font-size: 1.2rem !important;
+        color: #FF4B4B !important;
+        font-weight: bold !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    st.write("点击下方按钮，直接选择 **“拍照”** 或 **“相机”**。")
+    
+    img_file_upload = st.file_uploader(
+        "🔴 点这里 -> 选择 '拍照'", 
         type=['jpg', 'png', 'jpeg'], 
-        accept_multiple_files=False
+        accept_multiple_files=False,
+        key="uploader"
     )
+    if img_file_upload:
+        img_file = img_file_upload
+
+with tab2:
+    st.markdown("### 💻 网页直接抓拍")
+    st.caption("注意：此模式在部分安卓/iOS设备上可能无法对焦，仅建议电脑端使用。")
+    img_file_camera = st.camera_input("点击拍摄", key="camera")
+    if img_file_camera:
+        img_file = img_file_camera
 
 if img_file:
+    # 显示个加载圈
     with st.spinner('正在识别题目...'):
+        # f: 识别出的文字
         f = get_ocr_text(img_file)
 
     if f:
+        # 显示识别结果给用户确认
         st.subheader("📝 识别到的题目")
         st.info(f)
         
+        # 开始讲解
         st.subheader("👨‍🏫 老师讲解")
-        result_area = st.empty()
+        result_area = st.empty() # 创建一个空位用来打字
         
+        # g: 接收流式回复
         g = AI(f)
         
+        # 拼接回复
         full_response = ""
         for chunk in g:
             if chunk.choices[0].delta.content:
                 full_response += chunk.choices[0].delta.content
-                result_area.markdown(full_response)
+                result_area.markdown(full_response) # 实时更新屏幕
