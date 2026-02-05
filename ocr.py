@@ -31,7 +31,7 @@ def get_ocr_text(uploaded_file):
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": "请将这张图片里的所有文字和数学公式提取出来，公式请使用 LaTeX 格式。"},
+                        {"type": "text", "text": "请将这张图片里的所有文字和数学公式提取出来，公式请使用 markdown 格式。"},
                         {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{d}"}}
                     ]
                 }
@@ -59,7 +59,8 @@ def AI(question_text):
               1. 当学生问问题时，不要直接给完整答案。
               2. 请使用"难度降级"法，把复杂的题目拆解成简单的步骤。
               3. 先解释思路，再让学生去思考问题。
-              4. 公式请使用markdown格式。
+              4. 写出答案,具体讲解下.
+              5. 公式请使用markdown格式。
              """
              },
             {"role": "user", "content": f"学生发来了这道题，请讲解：\n{question_text}"},
