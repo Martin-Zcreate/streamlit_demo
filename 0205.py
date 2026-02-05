@@ -1,102 +1,104 @@
 import cv2
 import numpy as np
+import av
 import streamlit as st
+from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 from cvzone.HandTrackingModule import HandDetector
 
-# --- 1. 页面配置 ---
-st.set_page_config(page_title="AI神笔马良", layout="wide")
+# --- 页面设置 ---
+st.set_page_config(page_title="云端AI神笔", layout="wide")
+st.title("🖐️ 云端版 AI 神笔马良")
+st.info("提示：请允许浏览器访问摄像头。首次加载可能需要 10-20 秒。")
 
-# --- 2. 初始化核心变量 (关键步骤) ---
-# Streamlit每帧都会刷新代码，必须把画布存在 session_state 里，否则一刷新画的画就没了
-if 'canvas' not in st.session_state:
-    # 创建一个全黑的图层，尺寸 1280x720 (根据摄像头调整)
-    st.session_state.canvas = np.zeros((720, 1280, 3), np.uint8)
+# --- 定义画笔参数 ---
+# 注意：在WebRTC运行时，实时修改侧边栏参数比较复杂，
+# 为了演示稳定，我们把参数固定或简化
+draw_color = (0, 255, 0) # 绿色 (B, G, R)
+brush_thickness = 15
 
-# --- 3. 侧边栏控制台 ---
-st.sidebar.title("🎨 控制台")
-# 让观众选颜色，增加互动
-hex_color = st.sidebar.color_picker('画笔颜色', '#00FF00') 
-# 把十六进制颜色转成 OpenCV 的 BGR 格式
-r = int(hex_color[1:3], 16)
-g = int(hex_color[3:5], 16)
-b = int(hex_color[5:7], 16)
-draw_color = (b, g, r) # OpenCV用的是BGR顺序
+# --- 核心处理类 ---
+# 这里不再是用 while 循环，而是定义一个“处理器”
+class HandTrackProcessor(VideoTransformerBase):
+    def __init__(self):
+        # 初始化手部检测器
+        self.detector = HandDetector(detectionCon=0.8, maxHands=1)
+        # 初始化画布 (Canvas)
+        # 注意：这里不能确定摄像头分辨率，先设为None，第一帧来了再创建
+        self.canvas = None
+        # 上一帧的坐标点
+        self.xp, self.yp = 0, 0
 
-brush_thickness = st.sidebar.slider('画笔粗细', 5, 50, 15)
-if st.sidebar.button('🗑️ 清空画布'):
-    st.session_state.canvas = np.zeros((720, 1280, 3), np.uint8)
-
-# --- 4. 摄像头与AI初始化 ---
-st.title("🖐️ Python AI 隔空手势画板")
-st.caption("食指：写字 | 食指+中指：暂停")
-# 创建一个空白组件，后面在这个位置不断刷图
-frame_window = st.image([]) 
-
-cap = cv2.VideoCapture(0)
-# 设置摄像头分辨率，越大越清晰，但对电脑性能要求越高
-cap.set(3, 1280) 
-cap.set(4, 720)
-
-# detectionCon=0.8 表示AI要有80%把握才认为是手，防抖动
-detector = HandDetector(detectionCon=0.8, maxHands=1)
-
-# 记录上一帧的指尖坐标，用来画连续的线
-xp, yp = 0, 0 
-
-# --- 5. 主循环 (直播演示核心) ---
-run = st.checkbox('开启摄像头', value=True)
-
-while run:
-    success, img = cap.read()
-    if not success: break
-    
-    # 镜像翻转，不然左右是反的，操作很别扭
-    img = cv2.flip(img, 1) 
-    
-    # 【AI核心】寻找手部关键点
-    hands, img = detector.findHands(img, flipType=False, draw=True)
-    
-    if hands:
-        lmList = hands[0]['lmList'] # 获取21个关节坐标列表
-        # 获取 食指指尖(8) 和 中指指尖(12) 的坐标
-        x1, y1 = lmList[8][0], lmList[8][1]
-        x2, y2 = lmList[12][0], lmList[12][1]
+    def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
+        """
+        这个函数会针对每一帧视频被调用一次
+        """
+        # 1. 把来自网络的帧转换为 OpenCV 图像格式
+        img = frame.to_ndarray(format="bgr24")
         
-        # 判断手指是不是竖起来了 (返回一个列表 [0,1,1,0,0] 这种)
-        fingers = detector.fingersUp(hands[0])
+        # 翻转镜像
+        img = cv2.flip(img, 1)
         
-        # 模式A：食指和中指都竖起来 -> 【暂停/移动模式】
-        if fingers[1] and fingers[2]:
-            xp, yp = 0, 0 # 重置坐标，断开线条
-            cv2.circle(img, (x1, y1), 25, draw_color, cv2.FILLED) # 画个大点提示暂停
-            
-        # 模式B：只有食指竖起来 -> 【绘画模式】
-        elif fingers[1] and not fingers[2]:
-            # 如果是刚开始画，就把起点设为当前点
-            if xp == 0 and yp == 0:
-                xp, yp = x1, y1
-            
-            # 在“虚拟画布”上画线
-            cv2.line(st.session_state.canvas, (xp, yp), (x1, y1), draw_color, brush_thickness)
-            xp, yp = x1, y1 # 更新坐标
+        # 2. 初始化画布（如果还没创建）
+        if self.canvas is None:
+            # 创建一个和当前视频帧一样大小的黑底画布
+            self.canvas = np.zeros_like(img)
 
-    # --- 6. 图像融合 (最难理解的部分) ---
-    # 简单说：把黑底彩线的画布，像贴纸一样贴到摄像头画面上
-    
-    # 步骤A：把画布变成灰度图
-    imgGray = cv2.cvtColor(st.session_state.canvas, cv2.COLOR_BGR2GRAY)
-    # 步骤B：做一个反向遮罩 (黑线白底)
-    _, imgInv = cv2.threshold(imgGray, 50, 255, cv2.THRESH_BINARY_INV)
-    imgInv = cv2.cvtColor(imgInv, cv2.COLOR_GRAY2BGR)
-    
-    # 步骤C：把摄像头画面中，要画线的地方“抠黑”
-    img = cv2.bitwise_and(img, imgInv)
-    # 步骤D：把画布里的颜色填进去
-    img = cv2.bitwise_or(img, st.session_state.canvas)
+        # 3. AI手部识别
+        hands, img = self.detector.findHands(img, flipType=False, draw=True)
 
-    # --- 7. 显示画面 ---
-    # OpenCV是BGR，网页显示要RGB，转一下
-    imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    frame_window.image(imgRGB)
+        if hands:
+            lmList = hands[0]['lmList']
+            # 食指指尖(8) 和 中指指尖(12)
+            x1, y1 = lmList[8][0], lmList[8][1]
+            x2, y2 = lmList[12][0], lmList[12][1]
 
-cap.release()
+            # 判断手指状态
+            fingers = self.detector.fingersUp(hands[0])
+
+            # --- 逻辑复用之前的 ---
+            # 模式A：暂停 (食指+中指)
+            if fingers[1] and fingers[2]:
+                self.xp, self.yp = 0, 0
+                cv2.circle(img, (x1, y1), 25, draw_color, cv2.FILLED)
+
+            # 模式B：绘画 (仅食指)
+            elif fingers[1] and not fingers[2]:
+                if self.xp == 0 and self.yp == 0:
+                    self.xp, self.yp = x1, y1
+                
+                # 在 self.canvas 上画线
+                cv2.line(self.canvas, (self.xp, self.yp), (x1, y1), draw_color, brush_thickness)
+                self.xp, self.yp = x1, y1
+
+        # 4. 图像融合 (把画布叠加到摄像头画面)
+        imgGray = cv2.cvtColor(self.canvas, cv2.COLOR_BGR2GRAY)
+        _, imgInv = cv2.threshold(imgGray, 50, 255, cv2.THRESH_BINARY_INV)
+        imgInv = cv2.cvtColor(imgInv, cv2.COLOR_GRAY2BGR)
+
+        img = cv2.bitwise_and(img, imgInv)
+        img = cv2.bitwise_or(img, self.canvas)
+
+        # 5. 把处理好的 OpenCV 图像转回 WebRTC 帧返回给浏览器
+        return av.VideoFrame.from_ndarray(img, format="bgr24")
+
+# --- 启动 WebRTC 组件 ---
+# rtc_configuration 用于配置穿透服务器(STUN/TURN)，
+# 在某些公司内网或校园网可能因为防火墙无法连接，
+# 这里使用 Google 免费的 STUN 服务器尝试连接。
+rtc_configuration = {
+    "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
+}
+
+webrtc_streamer(
+    key="hand-drawing",
+    video_processor_factory=HandTrackProcessor,
+    rtc_configuration=rtc_configuration,
+    media_stream_constraints={"video": True, "audio": False}, # 只要视频，不要音频
+)
+
+st.markdown("---")
+st.write("操作说明：")
+st.write("1. 点击 START 按钮开启摄像头。")
+st.write("2. 伸出**食指**进行绘画。")
+st.write("3. 同时伸出**食指和中指**暂停绘画。")
+st.write("4. 点击 STOP 再点击 START 可以清空画布。")
