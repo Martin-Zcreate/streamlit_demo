@@ -3,7 +3,6 @@ import base64
 import re
 import io
 import json
-from PIL import Image, ImageOps
 from openai import OpenAI
 
 # ================= 恢复你的 API KEY =================
@@ -62,35 +61,6 @@ def clean_text(text):
     
     return text
 
-def process_image(image_bytes, max_mb=4):
-    """图片预处理：修正旋转 + 智能压缩"""
-    try:
-        img = Image.open(io.BytesIO(image_bytes))
-        img = ImageOps.exif_transpose(img) # 修正手机拍照旋转
-        
-        # 修复透明底变黑
-        if img.mode != 'RGB':
-            bg = Image.new('RGB', img.size, (255, 255, 255))
-            if 'A' in img.mode or 'transparency' in img.info:
-                img = img.convert('RGBA')
-                bg.paste(img, mask=img.split()[-1])
-                img = bg
-            else:
-                img = img.convert('RGB')
-
-        # 压缩逻辑
-        buf = io.BytesIO()
-        img.save(buf, format="JPEG", quality=95)
-        
-        # 只有在图片真的很大 (>4MB) 时才压缩
-        if len(buf.getvalue()) > max_mb * 1024 * 1024:
-            img.save(buf, format="JPEG", quality=85) 
-            
-        return buf.getvalue()
-    except Exception as e:
-        st.error(f"图片处理出错: {e}")
-        return image_bytes
-
 def get_ocr_text(image_bytes):
     """调用 OCR，加入 JSON 禁用提示"""
     # 使用硅基流动 Key
@@ -100,13 +70,13 @@ def get_ocr_text(image_bytes):
         b64_str = base64.b64encode(image_bytes).decode('utf-8')
         
         # 提示词：明确要求不要输出 JSON
-        prompt_text = "提取图中所有文字和公式。请直接输出纯文本内容，不要输出 JSON 格式，不要使用代码块包裹。"
+        prompt_text = "提取图中所有文字和公式。请直接输出纯文本内容，不要输出 JSON 格式，不要使用代码块包裹。" 
         
         response = client.chat.completions.create(
             model="deepseek-ai/DeepSeek-OCR",
             messages=[
                 {
-                    "role": "user", 
+                    "role": "user",
                     "content": [
                         {"type": "text", "text": prompt_text},
                         {
@@ -168,8 +138,8 @@ if uploaded_file:
         st.session_state.history = []
         
         with st.status("🚀 正在识别题目...", expanded=True) as status:
-            # 1. 处理图片
-            img_bytes = process_image(uploaded_file.getvalue())
+            # 1. 处理图片 (直接读取，不进行旋转和压缩)
+            img_bytes = uploaded_file.getvalue()
             # 2. 识别文字
             ocr_result = get_ocr_text(img_bytes)
             
