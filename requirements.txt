@@ -6,10 +6,4 @@ openai>=1.10.0
 opencv-python
 cvzone>=1.6.1
 pillow>=9.2.0
-streamlit
-streamlit-webrtc
-opencv-python-headless
-mediapipe==0.10.9
-cvzone==1.6.1
-numpy<2.0.0
-av
+
