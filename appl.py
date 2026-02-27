@@ -69,9 +69,11 @@ st.markdown("""
         background-color: #2d3748;
     }
     
+    /* 
     header[data-testid="stHeader"]{
         display:none;
     }
+    */
     footer{
         display:none;
     }
