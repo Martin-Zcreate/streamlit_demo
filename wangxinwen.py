@@ -3,7 +3,7 @@ import streamlit as st
 
 
 def ai(p,ids):
-    client = OpenAI(api_key="sk-db103a5ec442442bb66cc1b2e3187bf8", base_url="https://api.deepseek.com")
+    client = OpenAI(api_key="sk-c863590de8cc461b8fff8397f8d41989", base_url="https://api.deepseek.com")
     
     response = client.chat.completions.create(
         model="deepseek-chat",
